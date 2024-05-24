@@ -18,9 +18,9 @@ parser.add_argument("-p", "--project", help="Black Duck project to create (REQUI
 parser.add_argument("-v", "--version", help="Black Duck project version to create (REQUIRED)", default="")
 parser.add_argument("--debug", help="Debug logging mode", action='store_true')
 parser.add_argument("--logfile", help="Logging output file", default="")
+parser.add_argument("--version_match_reqd", help="Component matches require version string in path", action='store_true')
 
 args = parser.parse_args()
-
 
 def check_args():
     terminate = False
@@ -44,6 +44,7 @@ def check_args():
     else:
         logging.basicConfig(level=loglevel)
 
+    logging.info(f"ARGS: {args}")
     url = os.environ.get('BLACKDUCK_URL')
     if args.blackduck_url != '':
         global_values.bd_url = args.blackduck_url
@@ -72,6 +73,9 @@ def check_args():
     trustcert = os.environ.get('BLACKDUCK_TRUST_CERT')
     if trustcert == 'true' or args.blackduck_trust_cert:
         global_values.bd_trustcert = True
+
+    if args.version_match_reqd:
+        global_values.version_match_reqd = True
 
     if terminate:
         sys.exit(2)

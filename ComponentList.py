@@ -40,4 +40,4 @@ class ComponentList:
             if comp.is_dependency():
                 comp.set_reviewed()
             elif comp.is_only_signature():
-                comp.process_signature()
+                comp.process_signatures()

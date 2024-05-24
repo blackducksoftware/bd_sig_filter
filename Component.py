@@ -1,11 +1,11 @@
-from SigPath import SigPath
+from SigEntry import SigEntry
 
 class Component:
     def __init__(self, name, version, data):
         self.name = name
         self.version = version
         self.data = data
-        self.src_arr = []
+        self.sigentry_arr = []
         self.ignore = False
         self.mark_reviewed = False
 
@@ -16,7 +16,8 @@ class Component:
             return ''
 
     def add_src(self, src_entry):
-        self.src_arr.append(src_entry)
+        sigentry = SigEntry(src_entry)
+        self.sigentry_arr.append(sigentry)
 
     def get_matchtypes(self):
         try:
@@ -65,17 +66,28 @@ class Component:
         except KeyError:
             return False
 
-    def process_signature(self):
-        for src in self.src_arr:
-            try:
-                sigpath = SigPath(src['commentPath'])
-                if sigpath.filter_folders():
-                    # Ignore
-                    print(f"Ignoring {src['commentPath']}")
-                    self.set_ignore()
-                    continue
+    def process_signatures(self):
+        all_paths_ignoreable = True
+        reason = ''
+        for sigentry in self.sigentry_arr:
+            ignore, reason = sigentry.filter_folders()
+            if not ignore:
+                all_paths_ignoreable = False
+                break
+            else:
+                self.sigentry_arr.remove(sigentry)
 
-                sigpath.search_component(self.name, self.version)
+        if all_paths_ignoreable:
+            # Ignore
+            print(f"Ignoring {self.name}/{self.version} - {reason}")
+            self.set_ignore()
+        else:
+        #     print(f"NOT Ignoring {self.name}/{self.version}")
+
+            for sigentry in self.sigentry_arr:
+                set_ratio, sort_ratio = sigentry.search_component(self.name, self.version)
+                if set_ratio > 0:
+                    self.set_reviewed()
+                    break
                 # print(self.name, self.version, src['commentPath'])
-            except KeyError:
-                continue
+
