@@ -1,4 +1,9 @@
+import global_values
 from SigEntry import SigEntry
+import re
+# import global_values
+import logging
+from thefuzz import fuzz
 
 class Component:
     def __init__(self, name, version, data):
@@ -8,6 +13,11 @@ class Component:
         self.sigentry_arr = []
         self.ignore = False
         self.mark_reviewed = False
+        self.filter_name = self.filter_name_string(name)
+        self.filter_version = self.filter_version_string(version)
+        self.sig_match_result = -1
+        self.compname_found = False
+        self.compver_found = False
 
     def get_compverid(self):
         try:
@@ -34,7 +44,7 @@ class Component:
         return False
 
     def is_signature(self):
-        sig_types = ['FILE_EXACT', 'FILE_SOME_FILES_MODIFIED']
+        sig_types = ['FILE_EXACT', 'FILE_SOME_FILES_MODIFIED', 'FILE_FILES_ADDED_DELETED_AND_MODIFIED']
         match_types = self.get_matchtypes()
         for m in sig_types:
             if m in match_types:
@@ -79,15 +89,46 @@ class Component:
 
         if all_paths_ignoreable:
             # Ignore
-            print(f"Ignoring {self.name}/{self.version} - {reason}")
+            logging.info(f"IGNORING Component {self.filter_name}/{self.version} - {reason}")
             self.set_ignore()
         else:
         #     print(f"NOT Ignoring {self.name}/{self.version}")
-
+            self.sig_match_result = 0
             for sigentry in self.sigentry_arr:
-                set_ratio, sort_ratio = sigentry.search_component(self.name, self.version)
-                if set_ratio > 0:
+                self.compname_found, self.compver_found,\
+                    new_match_result = sigentry.search_component(self.filter_name, self.version)
+                if global_values.version_match_reqd:
+                    if self.compver_found:
+                        self.set_reviewed()
+                elif self.compname_found:
                     self.set_reviewed()
-                    break
+                if new_match_result > self.sig_match_result:
+                    self.sig_match_result = new_match_result
                 # print(self.name, self.version, src['commentPath'])
+    @staticmethod
+    def filter_name_string(name):
+        # Remove common words
+        # - for, with, in, on,
+        # Remove strings in brackets
+        # Replace / with space
+        ret_name = re.sub(r" for | with | in | on | a ", r"", name, re.IGNORECASE)
+        ret_name = re.sub(r"\(.*\)", r"", ret_name)
+        ret_name = re.sub(r"/", r" ", ret_name)
+        return ret_name
 
+    @staticmethod
+    def filter_version_string(version):
+        # Remove +git*
+        # Remove -snapshot*
+        # Replace / with space
+        ret_version = re.sub(r"\+git.*", r"", version, re.IGNORECASE)
+        ret_version = re.sub(r"-snapshot.*", r"", ret_version, re.IGNORECASE)
+        ret_version = re.sub(r"/", r" ", ret_version)
+        return ret_version
+
+    def get_compid(self):
+        try:
+            compurl = self.data['component']
+            return compurl.split('/')[-1]
+        except KeyError:
+            return ''

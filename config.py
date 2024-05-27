@@ -19,6 +19,9 @@ parser.add_argument("-v", "--version", help="Black Duck project version to creat
 parser.add_argument("--debug", help="Debug logging mode", action='store_true')
 parser.add_argument("--logfile", help="Logging output file", default="")
 parser.add_argument("--version_match_reqd", help="Component matches require version string in path", action='store_true')
+parser.add_argument("--no_ignore", help="Do not ignore components", action='store_true')
+parser.add_argument("--no_reviewed", help="Do not mark components reviewed", action='store_true')
+parser.add_argument("--no_ignore_test", help="Debug logging mode", action='store_true')
 
 args = parser.parse_args()
 
@@ -76,6 +79,15 @@ def check_args():
 
     if args.version_match_reqd:
         global_values.version_match_reqd = True
+
+    if args.no_ignore:
+        global_values.no_ignore = True
+
+    if args.no_reviewed:
+        global_values.no_reviewed = True
+
+    if args.no_ignore_test:
+        global_values.no_ignore_test = True
 
     if terminate:
         sys.exit(2)

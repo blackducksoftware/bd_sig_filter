@@ -2,6 +2,7 @@ from thefuzz import fuzz
 import os
 import re
 import global_values
+import logging
 
 class SigEntry:
     def __init__(self, src_entry):
@@ -16,52 +17,73 @@ class SigEntry:
             return
 
     def search_component(self, compname, compver):
-        print(f"Checking Comp '{compname} {compver}' - {self.path}:")
+        logging.info(f"Checking Comp '{compname} {compver}' - {self.path}:")
         # If component_version_reqd:
         # - folder matches compname and compver
         # - folder1 matches compname and folder2 matches compver
         # Else:
         # - folder matches compname
+        # Returns:
+        # Bool1 - compname found
+        # Bool2 - version found
+        # Match_value - search result against both
 
         compstring = f"{compname} {compver}"
 
-        max_set_ratio = 0
-        set_ratio_match = ''
-        max_sort_ratio = 0
+        found_compname_only = False
         for element in self.elements:
-            set_ratio = fuzz.token_set_ratio(element, compstring)
-            # how much of the folder name exists in the component
-            if set_ratio > max_set_ratio:
-                sort_ratio = fuzz.token_sort_ratio(element, compstring)
-                # print(f"- INTERMEDIATE {element} - {set_ratio},{sort_ratio}")
-                if sort_ratio > 45:
-                    match = True
-                    if global_values.version_match_reqd:
-                        ver_ratio = fuzz.token_set_ratio(compver, element)
-                        if ver_ratio < 70:
-                            match = False
+            pos = re.search(r"\.dll|\.obj|\.o|\.a|\.lib|\.iso|\.qcow2|\.vmdk|\.vdi|\.ova|\.nbi|\.vib|\.exe|\.img|"
+                            "\.bin|\.apk|\.aac|\.ipa|\.msi|\.zip|\.gz|\.tar|\.xz|\.lz|\.bz2|\.7z|\.rar|"
+                            "\.cpio|\.Z|\.lz4|\.lha|\.arj|\.jar|\.ear|\.war|\.rpm|\.deb|\.dmg|\.pki", element)
+            if pos is not None:
+                element = element[:pos.start()]
+            # How much of the element string is from the compname and version?
+            # - for example acl-1.3.0.jar
+            # - Value of 100 indicates either compname or version exists in element
+            element_in_compstring = fuzz.token_set_ratio(element, compstring)
+            element_in_compname = fuzz.token_set_ratio(element, compname)
+            compver_in_element = fuzz.token_set_ratio(compver, element)
 
-                    if match:
-                        max_set_ratio = set_ratio
-                        max_sort_ratio = sort_ratio
-                        set_ratio_match = element
+            if element_in_compstring > 80:
+                if compver_in_element > 50:
+                    # element has both compname and version
+                    logging.info(f"- MATCHED component name & version ({compstring}) in '{element}'")
+                    return True, True, element_in_compname + compver_in_element
+                elif element_in_compname > 50 and len(element) > 2:
+                    found_compname_only = True
+                    logging.info(f"- FOUND component name ONLY ({compname}) in '{element}'")
+            elif found_compname_only:
+                if compver_in_element > 50:
+                    logging.info(f"- MATCHED component version ({compver}) in '{element}'")
+                    return True, True, element_in_compname + compver_in_element
 
-        print(f"- FINAL {set_ratio_match} - {max_set_ratio},{max_sort_ratio}")
-        return max_set_ratio,max_sort_ratio
+        if found_compname_only:
+            logging.info("- MATCHED Compname only")
+            return True, False, element_in_compname + compver_in_element
+
+        logging.info(f"- NOT MATCHED")
+        return False, False, 0
+
 
     def filter_folders(self):
-        # Return True if path should be ignored
+        # Return True if path should be ignored + reason
         syn_folders = ['.synopsys', 'synopsys-detect', '.coverity', 'synopsys-detect.jar',
                        'scan.cli.impl-standalone.jar', 'seeker-agent.tgz', 'seeker-agent.zip',
                        'Black_Duck_Scan_Installation']
-        for e in syn_folders:
-            if e in self.elements:
+        for e in self.elements:
+            if e in syn_folders:
                 return True, f"Found {e} in Signature match path"
 
         def_folders = ['.cache', '.m2', '.local', '.cache','.config', '.docker', '.npm', '.npmrc', '.pyenv',
-        '.Trash', '.git', 'node_modules']
-        for e in def_folders:
-            if e in self.elements:
+                       '.Trash', '.git', 'node_modules']
+        for e in self.elements:
+            if e in def_folders:
                 return True, f"Found {e} in Signature match path"
+
+        if not global_values.no_ignore_test:
+            test_folders = ['test', 'tests']
+            for e in self.elements:
+                if e in test_folders:
+                    return True, f"Found {e} in Signature match path"
 
         return False, ''

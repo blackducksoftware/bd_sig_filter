@@ -5,9 +5,9 @@
 import logging
 import sys
 # import os
-import requests
-import platform
-import asyncio
+# import requests
+# import platform
+# import asyncio
 import bd_data
 
 from blackduck import Client
@@ -83,54 +83,6 @@ def get_bdproject(bdproj, bdver):
 
 	ver_dict = check_projver(global_values.bd, bdproj, bdver)
 	return ver_dict
-
-
-def ignore_components(compdict, ver_dict):
-	ignore_comps = []
-	count_ignored = 0
-	ignore_array = []
-
-	logging.info("- Ignoring partial components ...")
-	count = 0
-	for comp in compdict.keys():
-		ignored = False
-		if pkg_ignore_dict[comp]:
-			# Ignore this component
-			ignore_array.append(compdict[comp]['_meta']['href'])
-			count_ignored += 1
-			count += 1
-			ignored = True
-		if ignored and count_ignored >= 99:
-			ignore_comps.append(ignore_array)
-			ignore_array = []
-			count_ignored = 0
-
-	ignore_comps.append(ignore_array)
-	if count == 0:
-		return
-	for ignore_array in ignore_comps:
-		bulk_data = {
-			"components": ignore_array,
-			# "reviewStatus": "REVIEWED",
-			"ignored": True,
-			# "usage": "DYNAMICALLY_LINKED",
-			# "inAttributionReport": true
-		}
-
-		try:
-			url = ver_dict['_meta']['href'] + '/bulk-adjustment'
-			headers = {
-				"Accept": "application/vnd.blackducksoftware.bill-of-materials-6+json",
-				"Content-Type": "application/vnd.blackducksoftware.bill-of-materials-6+json"
-			}
-			r = global_values.bd.session.patch(url, json=bulk_data, headers=headers)
-			r.raise_for_status()
-		except requests.HTTPError as err:
-			global_values.bd.http_error_handler(err)
-
-	logging.info(f"- Ignored {count} components")
-	return
-
 
 def filter_sig_comps(compdict):
 	sig_dict = {}
