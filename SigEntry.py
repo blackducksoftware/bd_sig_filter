@@ -17,7 +17,7 @@ class SigEntry:
             return
 
     def search_component(self, compname, compver):
-        logging.info(f"Checking Comp '{compname} {compver}' - {self.path}:")
+        logging.debug(f"search_component() Checking Comp '{compname} {compver}' - {self.path}:")
         # If component_version_reqd:
         # - folder matches compname and compver
         # - folder1 matches compname and folder2 matches compver
@@ -29,6 +29,8 @@ class SigEntry:
         # Match_value - search result against both
 
         compstring = f"{compname} {compver}"
+        element_in_compname = 0
+        compver_in_element = 0
 
         found_compname_only = False
         for element in self.elements:
@@ -47,21 +49,21 @@ class SigEntry:
             if element_in_compstring > 80:
                 if compver_in_element > 50:
                     # element has both compname and version
-                    logging.info(f"- MATCHED component name & version ({compstring}) in '{element}'")
+                    logging.debug(f"search_component() - MATCHED component name & version ({compstring}) in '{element}'")
                     return True, True, element_in_compname + compver_in_element
                 elif element_in_compname > 50 and len(element) > 2:
                     found_compname_only = True
-                    logging.info(f"- FOUND component name ONLY ({compname}) in '{element}'")
+                    logging.debug(f"search_component() - FOUND component name ONLY ({compname}) in '{element}'")
             elif found_compname_only:
                 if compver_in_element > 50:
-                    logging.info(f"- MATCHED component version ({compver}) in '{element}'")
+                    logging.debug(f"search_component() - MATCHED component version ({compver}) in '{element}'")
                     return True, True, element_in_compname + compver_in_element
 
         if found_compname_only:
-            logging.info("- MATCHED Compname only")
+            logging.debug("search_component() - MATCHED Compname only")
             return True, False, element_in_compname + compver_in_element
 
-        logging.info(f"- NOT MATCHED")
+        logging.debug(f"search_component() - NOT MATCHED")
         return False, False, 0
 
 
@@ -72,18 +74,18 @@ class SigEntry:
                        'Black_Duck_Scan_Installation']
         for e in self.elements:
             if e in syn_folders:
-                return True, f"Found {e} in Signature match path"
+                return True, f"Found '{e}' in Signature match path"
 
         def_folders = ['.cache', '.m2', '.local', '.cache','.config', '.docker', '.npm', '.npmrc', '.pyenv',
                        '.Trash', '.git', 'node_modules']
         for e in self.elements:
             if e in def_folders:
-                return True, f"Found {e} in Signature match path"
+                return True, f"Found '{e}' in Signature match path"
 
         if not global_values.no_ignore_test:
             test_folders = ['test', 'tests']
             for e in self.elements:
                 if e in test_folders:
-                    return True, f"Found {e} in Signature match path"
+                    return True, f"Found '{e}' in Signature match path"
 
         return False, ''

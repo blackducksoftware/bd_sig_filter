@@ -50,12 +50,14 @@ class ComponentList:
         logging.info("\nDUPLICATE SIGNATURE MATCHES FILTER PHASE")
         for i in range(len(self.components)):
             comp1 = self.components[i]
-            if comp1.is_ignored() or comp1.ignore:
+            if comp1.is_ignored() or comp1.is_dependency() or not comp1.is_only_signature() or comp1.ignore:
                 continue
+
             for j in range(i + 1, len(self.components)):
                 comp2 = self.components[j]
-                if comp2.is_ignored() or comp2.ignore:
+                if comp2.is_ignored() or comp2.is_dependency() or not comp2.is_only_signature() or comp2.ignore:
                     continue
+
                 if comp1.get_compid() == comp2.get_compid():
                     if comp1.compname_found and not comp2.compname_found:
                         logging.info(f"IGNORING {comp2.name}/{comp2.version} as it is a duplicate to {comp1.name}/{comp1.version}")
@@ -64,14 +66,14 @@ class ComponentList:
                         logging.info(f"IGNORING {comp1.name}/{comp1.version} as it is a duplicate to {comp2.name}/{comp2.version}")
                         comp1.set_ignore()
                     elif comp1.compver_found and not comp2.compver_found:
-                        logging.info(f"IGNORING {comp2.name}/{comp2.version} as it is a duplicate to {comp1.name}/{comp1.version}")
+                        logging.info(f"Will ignore {comp2.name}/{comp2.version} as it is a duplicate to {comp1.name}/{comp1.version} and path misses version")
                         comp2.set_ignore()
                     elif not comp1.compver_found and comp2.compver_found:
-                        logging.info(f"IGNORING {comp1.name}/{comp1.version} as it is a duplicate to {comp2.name}/{comp2.version}")
+                        logging.info(f"Will ignore {comp1.name}/{comp1.version} as it is a duplicate to {comp2.name}/{comp2.version} and path misses version")
                         comp1.set_ignore()
                     else:
                         # Nothing to do
-                        logging.info(f"- KEEPING {comp1.filter_name}/{comp1.filter_version}:{comp2.filter_name}/{comp2.filter_version} - "
+                        logging.info(f"- Will retain both components {comp1.filter_name}/{comp1.filter_version} and {comp2.filter_name}/{comp2.filter_version} - "
                               f"{comp1.sig_match_result},{comp2.sig_match_result}")
 
     def update_components(self, ver_dict):

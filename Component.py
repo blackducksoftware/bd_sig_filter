@@ -3,7 +3,7 @@ from SigEntry import SigEntry
 import re
 # import global_values
 import logging
-from thefuzz import fuzz
+# from thefuzz import fuzz
 
 class Component:
     def __init__(self, name, version, data):
@@ -89,29 +89,38 @@ class Component:
 
         if all_paths_ignoreable:
             # Ignore
-            logging.info(f"IGNORING Component {self.filter_name}/{self.version} - {reason}")
+            logging.info(f"- Component {self.filter_name}/{self.version} - Will be marked for ignore - {reason}")
             self.set_ignore()
         else:
         #     print(f"NOT Ignoring {self.name}/{self.version}")
             self.sig_match_result = 0
+            set_reviewed = False
             for sigentry in self.sigentry_arr:
                 self.compname_found, self.compver_found,\
                     new_match_result = sigentry.search_component(self.filter_name, self.version)
+                logging.debug(f"- Component {self.name}/{self.version}: "
+                             f"Compname in path {self.compname_found}, Version in path {self.compver_found}, "
+                             f"Match result {new_match_result}")
                 if global_values.version_match_reqd:
                     if self.compver_found:
-                        self.set_reviewed()
+                        set_reviewed = True
                 elif self.compname_found:
-                    self.set_reviewed()
+                    set_reviewed = True
                 if new_match_result > self.sig_match_result:
                     self.sig_match_result = new_match_result
                 # print(self.name, self.version, src['commentPath'])
+            if set_reviewed:
+                logging.info(f"- Component {self.name}/{self.version}: "
+                             f"New review status {True} Existing reviewed status {self.get_reviewed_status()}")
+
+
     @staticmethod
     def filter_name_string(name):
         # Remove common words
         # - for, with, in, on,
         # Remove strings in brackets
         # Replace / with space
-        ret_name = re.sub(r" for | with | in | on | a ", r"", name, re.IGNORECASE)
+        ret_name = re.sub(r" for | with | in | on | a |apache ", r" ", name, re.IGNORECASE)
         ret_name = re.sub(r"\(.*\)", r"", ret_name)
         ret_name = re.sub(r"/", r" ", ret_name)
         return ret_name
