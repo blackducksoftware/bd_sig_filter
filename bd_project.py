@@ -12,8 +12,8 @@ import bd_data
 
 from blackduck import Client
 import global_values
-from ComponentList import ComponentList
-from Component import Component
+from ComponentListClass import ComponentList
+from ComponentClass import Component
 # logging.basicConfig(level=logging.INFO)
 
 
@@ -43,27 +43,6 @@ def check_projver(bd, proj, ver):
 	sys.exit(2)
 
 
-def get_bom_components(bd, ver_dict):
-	# comp_dict = {}
-	complist = ComponentList()
-
-	res = bd.list_resources(ver_dict)
-	projver = res['href']
-	thishref = f"{projver}/components?limit=1000"
-
-	bom_arr = bd_data.get_paginated_data(thishref, "application/vnd.blackducksoftware.bill-of-materials-6+json")
-
-	for comp in bom_arr:
-		if 'componentVersion' not in comp:
-			continue
-		# compver = comp['componentVersion']
-
-		compclass = Component(comp['componentName'], comp['componentVersionName'], comp)
-		complist.add(compclass)
-
-	return complist
-
-
 def get_all_projects(bd):
 	projs = bd.get_resource('projects', items=True)
 
@@ -83,11 +62,3 @@ def get_bdproject(bdproj, bdver):
 
 	ver_dict = check_projver(global_values.bd, bdproj, bdver)
 	return ver_dict
-
-def filter_sig_comps(compdict):
-	sig_dict = {}
-	for url, comp in compdict.items():
-		if 'FILE_EXACT' in comp['matchTypes']:
-			sig_dict[url] = comp
-
-	return sig_dict

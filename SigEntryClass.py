@@ -69,23 +69,25 @@ class SigEntry:
 
     def filter_folders(self):
         # Return True if path should be ignored + reason
-        syn_folders = ['.synopsys', 'synopsys-detect', '.coverity', 'synopsys-detect.jar',
-                       'scan.cli.impl-standalone.jar', 'seeker-agent.tgz', 'seeker-agent.zip',
-                       'Black_Duck_Scan_Installation']
-        for e in self.elements:
-            if e in syn_folders:
-                return True, f"Found '{e}' in Signature match path"
+        if not global_values.no_ignore_synopsys:
+            syn_folders = ['.synopsys', 'synopsys-detect', '.coverity', 'synopsys-detect.jar',
+                           'scan.cli.impl-standalone.jar', 'seeker-agent.tgz', 'seeker-agent.zip',
+                           'Black_Duck_Scan_Installation']
+            for e in self.elements:
+                if e in syn_folders:
+                    return True, f"Found '{e}' in Signature match path '{self.path}'"
 
-        def_folders = ['.cache', '.m2', '.local', '.cache','.config', '.docker', '.npm', '.npmrc', '.pyenv',
-                       '.Trash', '.git', 'node_modules']
-        for e in self.elements:
-            if e in def_folders:
-                return True, f"Found '{e}' in Signature match path"
+        if not global_values.no_ignore_defaults:
+            def_folders = ['.cache', '.m2', '.local', '.cache','.config', '.docker', '.npm', '.npmrc', '.pyenv',
+                           '.Trash', '.git', 'node_modules']
+            for e in self.elements:
+                if e in def_folders:
+                    return True, f"Found '{e}' in Signature match path '{self.path}'"
 
         if not global_values.no_ignore_test:
             test_folders = ['test', 'tests']
             for e in self.elements:
                 if e in test_folders:
-                    return True, f"Found '{e}' in Signature match path"
+                    return True, f"Found '{e}' in Signature match path '{self.path}'"
 
         return False, ''

@@ -8,6 +8,9 @@ bd_url = ''
 bd_trustcert = False
 
 version_match_reqd = False
-no_ignore = False
+ignore = False
 no_ignore_test = False
-no_reviewed = False
+no_ignore_synopsys = False
+no_ignore_defaults = False
+review = False
+report_file = ''

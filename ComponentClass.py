@@ -1,5 +1,5 @@
 import global_values
-from SigEntry import SigEntry
+from SigEntryClass import SigEntry
 import re
 # import global_values
 import logging
@@ -18,6 +18,8 @@ class Component:
         self.sig_match_result = -1
         self.compname_found = False
         self.compver_found = False
+        self.reason = 'No Action'
+        self.best_sigpath = ''
 
     def get_compverid(self):
         try:
@@ -89,30 +91,41 @@ class Component:
 
         if all_paths_ignoreable:
             # Ignore
-            logging.info(f"- Component {self.filter_name}/{self.version} - Will be marked for ignore - {reason}")
+            reason = f"Mark ignored - {reason}"
+            self.reason = reason
+            logging.debug(f"- Component {self.filter_name}/{self.version}: {reason}")
             self.set_ignore()
         else:
         #     print(f"NOT Ignoring {self.name}/{self.version}")
             self.sig_match_result = 0
             set_reviewed = False
             for sigentry in self.sigentry_arr:
-                self.compname_found, self.compver_found,\
+                compname_found, compver_found,\
                     new_match_result = sigentry.search_component(self.filter_name, self.version)
-                logging.debug(f"- Component {self.name}/{self.version}: "
-                             f"Compname in path {self.compname_found}, Version in path {self.compver_found}, "
-                             f"Match result {new_match_result}")
+                logging.debug(f"Compname in path {compname_found}, Version in path {compver_found}, "
+                              f"Match result {new_match_result}, Path '{sigentry.path}'")
+                if compver_found:
+                    self.compver_found = True
+                if compname_found:
+                    self.compname_found = True
                 if global_values.version_match_reqd:
-                    if self.compver_found:
+                    if compver_found:
                         set_reviewed = True
-                elif self.compname_found:
+                elif compname_found:
                     set_reviewed = True
                 if new_match_result > self.sig_match_result:
                     self.sig_match_result = new_match_result
+                    self.best_sigpath = sigentry.path
                 # print(self.name, self.version, src['commentPath'])
             if set_reviewed:
-                logging.info(f"- Component {self.name}/{self.version}: "
-                             f"New review status {True} Existing reviewed status {self.get_reviewed_status()}")
+                if self.compver_found:
+                    reason = f"Mark reviewed - Compname & version in path '{self.best_sigpath}', Match result {self.sig_match_result}"
+                elif self.compname_found:
+                    reason = f"Mark reviewed - Compname in path '{self.best_sigpath}', Match result {self.sig_match_result}"
 
+                self.reason = reason
+                logging.debug(f"- Component {self.name}/{self.version}: {reason}")
+                self.set_reviewed()
 
     @staticmethod
     def filter_name_string(name):

@@ -18,10 +18,13 @@ parser.add_argument("-p", "--project", help="Black Duck project to create (REQUI
 parser.add_argument("-v", "--version", help="Black Duck project version to create (REQUIRED)", default="")
 parser.add_argument("--debug", help="Debug logging mode", action='store_true')
 parser.add_argument("--logfile", help="Logging output file", default="")
+parser.add_argument("--report_file", help="Report output file", default="")
 parser.add_argument("--version_match_reqd", help="Component matches require version string in path", action='store_true')
-parser.add_argument("--no_ignore", help="Do not ignore components", action='store_true')
-parser.add_argument("--no_reviewed", help="Do not mark components reviewed", action='store_true')
-parser.add_argument("--no_ignore_test", help="Debug logging mode", action='store_true')
+parser.add_argument("--ignore", help="Ignore components", action='store_true')
+parser.add_argument("--review", help="Mark components reviewed", action='store_true')
+parser.add_argument("--no_ignore_test", help="Do not ignore components in test folders", action='store_true')
+parser.add_argument("--no_ignore_synopsys", help="Do not ignore components in synopsys tool folders", action='store_true')
+parser.add_argument("--no_ignore_defaults", help="Do not ignore components in default folders", action='store_true')
 
 args = parser.parse_args()
 
@@ -47,7 +50,11 @@ def check_args():
     else:
         logging.basicConfig(level=loglevel)
 
-    logging.info(f"ARGS: {args}")
+    logging.info("ARGUMENTS:")
+    for arg in vars(args):
+        logging.info(f"--{arg}={getattr(args, arg)}")
+    logging.info('')
+
     url = os.environ.get('BLACKDUCK_URL')
     if args.blackduck_url != '':
         global_values.bd_url = args.blackduck_url
@@ -80,14 +87,27 @@ def check_args():
     if args.version_match_reqd:
         global_values.version_match_reqd = True
 
-    if args.no_ignore:
-        global_values.no_ignore = True
+    if args.ignore:
+        global_values.ignore = True
 
-    if args.no_reviewed:
-        global_values.no_reviewed = True
+    if args.review:
+        global_values.review = True
 
     if args.no_ignore_test:
         global_values.no_ignore_test = True
+
+    if args.no_ignore_synopsys:
+        global_values.no_ignore_synopsys = True
+
+    if args.no_ignore_defaults:
+        global_values.no_ignore_defaults = True
+
+    if args.report_file:
+        if os.path.exists(args.report_file):
+            logging.error(f"Report file '{args.report_file}' already exists - exiting")
+            terminate = True
+        global_values.report_file = args.report_file
+
 
     if terminate:
         sys.exit(2)

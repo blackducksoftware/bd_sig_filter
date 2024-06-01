@@ -68,18 +68,6 @@ def get_file_data(compdict):
     return file_dict
 
 
-def get_bom_files(bdver_dict):
-    res = global_values.bd.list_resources(bdver_dict)
-    projver = res['href']
-    thishref = f"{projver}/source-bom-entries?filter=bomMatchType%3Afiles_modified&filter=bomMatchType%3Afiles_added_deleted&filter=bomMatchType%3Afile_exact&filter=bomMatchType%3Afiles_exact&limit=1000"
-    thishref = thishref.replace("/api/", "/api/internal/")
-
-    # https://poc39.blackduck.synopsys.com/api/internal/projects/9a25dee6-bc03-416c-a5bb-70ceb58ada28/versions/067cd508-ff40-46b8-ae0d-23218f224eeb/source-bom-entries?filter=bomMatchType%3Afiles_modified&filter=bomMatchType%3Afiles_added_deleted&filter=bomMatchType%3Afile_exact&filter=bomMatchType%3Afiles_exact&limit=100&offset=0
-
-    # return bd_data.get_paginated_data(thishref, "application/vnd.blackducksoftware.internal-1+json")
-    return bd_data.get_paginated_data(thishref, "application/json")
-
-
 def get_paginated_data(url, accept_hdr):
     headers = {
         'accept': accept_hdr,
