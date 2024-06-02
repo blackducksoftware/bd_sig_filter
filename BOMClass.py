@@ -4,10 +4,12 @@ import bd_data
 import bd_project
 import global_values
 from tabulate import tabulate
+import logging
 
 class BOM:
     def __init__(self):
         self.complist = ComponentList()
+        logging.info(f"Working on project '{global_values.bd_project}' version '{global_values.bd_version}'")
 
         self.bdver_dict = bd_project.get_bdproject(global_values.bd_project, global_values.bd_version)
 
@@ -66,5 +68,6 @@ class BOM:
 
     def report_full(self):
         table = self.complist.get_component_report_data()
-        print(tabulate(table, headers=["Component", "Match Type", "Ignored", "Reviewed", "To be Ignored", "To be Reviewed", "Reason"]))
+        print(tabulate(table, headers=["Component", "Match Type", "Ignored", "Reviewed", "To be Ignored",
+                                       "To be Reviewed", "Action"]))
         print()

@@ -8,12 +8,12 @@ import sys
 # import requests
 # import platform
 # import asyncio
-import bd_data
+# import bd_data
 
 from blackduck import Client
 import global_values
-from ComponentListClass import ComponentList
-from ComponentClass import Component
+# from ComponentListClass import ComponentList
+# from ComponentClass import Component
 # logging.basicConfig(level=logging.INFO)
 
 

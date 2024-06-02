@@ -91,7 +91,7 @@ class Component:
 
         if all_paths_ignoreable:
             # Ignore
-            reason = f"Mark ignored - {reason}"
+            reason = f"Mark IGNORED - {reason}"
             self.reason = reason
             logging.debug(f"- Component {self.filter_name}/{self.version}: {reason}")
             self.set_ignore()
@@ -119,9 +119,9 @@ class Component:
                 # print(self.name, self.version, src['commentPath'])
             if set_reviewed:
                 if self.compver_found:
-                    reason = f"Mark reviewed - Compname & version in path '{self.best_sigpath}', Match result {self.sig_match_result}"
+                    reason = f"Mark REVIEWED - Compname & version in path '{self.best_sigpath}', Match result {self.sig_match_result}"
                 elif self.compname_found:
-                    reason = f"Mark reviewed - Compname in path '{self.best_sigpath}', Match result {self.sig_match_result}"
+                    reason = f"Mark REVIEWED - Compname in path '{self.best_sigpath}', Match result {self.sig_match_result}"
 
                 self.reason = reason
                 logging.debug(f"- Component {self.name}/{self.version}: {reason}")

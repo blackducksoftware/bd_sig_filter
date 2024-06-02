@@ -89,7 +89,7 @@ class ComponentList:
                 continue
             if comp.is_dependency():
                 comp.set_reviewed()
-                comp.reason = "Mark reviewed as Dependency"
+                comp.reason = "Mark REVIEWED as is Dependency"
             elif comp.is_only_signature():
                 comp.process_signatures()
 
@@ -108,20 +108,20 @@ class ComponentList:
                 if comp1.get_compid() == comp2.get_compid():
                     if comp1.compname_found and not comp2.compname_found:
                         logging.debug(f"IGNORING {comp2.name}/{comp2.version} as it is a duplicate to {comp1.name}/{comp1.version}")
-                        comp2.reason = f"Mark ignored - Is a duplicate of '{comp1.name[:25]}/{comp1.version[:10]}' but has no compname in Signature paths"
+                        comp2.reason = f"Mark IGNORED - Is a duplicate of '{comp1.name[:25]}/{comp1.version[:10]}' but has no compname in Signature paths"
                         comp2.set_ignore()
                     elif not comp1.compname_found and comp2.compname_found:
                         logging.debug(f"IGNORING {comp1.name}/{comp1.version} as it is a duplicate to {comp2.name}/{comp2.version}")
                         comp1.set_ignore()
-                        comp1.reason = f"Mark ignored - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but has no compname in Signature paths"
+                        comp1.reason = f"Mark IGNORED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but has no compname in Signature paths"
                     elif comp1.compver_found and not comp2.compver_found:
                         logging.debug(f"Will ignore {comp2.name}/{comp2.version} as it is a duplicate to {comp1.name}/{comp1.version} and path misses version")
                         comp2.set_ignore()
-                        comp2.reason = f"Mark ignored - Is a duplicate to '{comp1.name[:25]}/{comp1.version[:10]}' but has no version in Signature paths"
+                        comp2.reason = f"Mark IGNORED - Is a duplicate to '{comp1.name[:25]}/{comp1.version[:10]}' but has no version in Signature paths"
                     elif not comp1.compver_found and comp2.compver_found:
                         logging.debug(f"Will ignore {comp1.name}/{comp1.version} as it is a duplicate to {comp2.name}/{comp2.version} and path misses version")
                         comp1.set_ignore()
-                        comp1.reason = f"Mark ignored - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but has no version in Signature paths"
+                        comp1.reason = f"Mark IGNORED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but has no version in Signature paths"
                     else:
                         # Nothing to do
                         logging.debug(f"- Will retain both components {comp1.filter_name}/{comp1.filter_version} and {comp2.filter_name}/{comp2.filter_version} - "

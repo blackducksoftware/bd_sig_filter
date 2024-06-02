@@ -14,7 +14,7 @@ def main():
 
     bom = BOM()
 
-    logging.info('- Getting matched file data ... ')
+    logging.debug('- Getting matched file data ... ')
     bom.get_bom_files()
     bom.process()
     bom.update_components()
