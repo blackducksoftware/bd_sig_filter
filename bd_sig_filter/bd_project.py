@@ -11,7 +11,7 @@ import sys
 # import bd_data
 
 from blackduck import Client
-import global_values
+from . import global_values
 # from ComponentListClass import ComponentList
 # from ComponentClass import Component
 # logging.basicConfig(level=logging.INFO)

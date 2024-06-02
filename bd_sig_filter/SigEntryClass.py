@@ -1,7 +1,7 @@
 from thefuzz import fuzz
 import os
 import re
-import global_values
+from . import global_values
 import logging
 
 class SigEntry:
@@ -17,7 +17,7 @@ class SigEntry:
             return
 
     def search_component(self, compname, compver):
-        logging.debug(f"search_component() Checking Comp '{compname} {compver}' - {self.path}:")
+        logging.debug(f"search_component() Checking Comp '{compname}/{compver}' - {self.path}:")
         # If component_version_reqd:
         # - folder matches compname and compver
         # - folder1 matches compname and folder2 matches compver
@@ -31,6 +31,10 @@ class SigEntry:
         compstring = f"{compname} {compver}"
         element_in_compname = 0
         compver_in_element = 0
+
+        # test of path search
+        comp_in_path = fuzz.token_set_ratio(compstring, self.path)
+        logging.debug(f"search_component(): comp_in_path is {comp_in_path}: path='{self.path}")
 
         found_compname_only = False
         for element in self.elements:

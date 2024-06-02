@@ -1,8 +1,8 @@
-from ComponentListClass import ComponentList
-from ComponentClass import Component
-import bd_data
-import bd_project
-import global_values
+from .ComponentListClass import ComponentList
+from .ComponentClass import Component
+from . import bd_data
+from . import bd_project
+from . import global_values
 from tabulate import tabulate
 import logging
 

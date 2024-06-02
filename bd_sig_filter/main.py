@@ -1,11 +1,10 @@
 # import bd_data
 # from ComponentList import ComponentList
 # from Component import Component
-import config
+from . import config
 # import bd_project
-import global_values
 import logging
-from BOMClass import BOM
+from .BOMClass import BOM
 # import platform
 
 

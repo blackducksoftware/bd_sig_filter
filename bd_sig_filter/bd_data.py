@@ -4,7 +4,7 @@ import platform
 # import logging
 
 # import bd_data
-import global_values
+from . import global_values
 
 
 async def async_main(comps, token):

@@ -1,5 +1,5 @@
 # from Component import Component
-import global_values
+from . import global_values
 import logging
 import requests
 
@@ -89,7 +89,7 @@ class ComponentList:
                 continue
             if comp.is_dependency():
                 comp.set_reviewed()
-                comp.reason = "Mark REVIEWED as is Dependency"
+                comp.reason = "Mark REVIEWED - Dependency"
             elif comp.is_only_signature():
                 comp.process_signatures()
 

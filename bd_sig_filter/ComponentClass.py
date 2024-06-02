@@ -1,5 +1,5 @@
-import global_values
-from SigEntryClass import SigEntry
+from . import global_values
+from .SigEntryClass import SigEntry
 import re
 # import global_values
 import logging
@@ -99,20 +99,24 @@ class Component:
         #     print(f"NOT Ignoring {self.name}/{self.version}")
             self.sig_match_result = 0
             set_reviewed = False
+            ignore = True
             for sigentry in self.sigentry_arr:
                 compname_found, compver_found,\
-                    new_match_result = sigentry.search_component(self.filter_name, self.version)
+                    new_match_result = sigentry.search_component(self.filter_name, self.filter_version)
                 logging.debug(f"Compname in path {compname_found}, Version in path {compver_found}, "
                               f"Match result {new_match_result}, Path '{sigentry.path}'")
                 if compver_found:
                     self.compver_found = True
+                    ignore = False
                 if compname_found:
                     self.compname_found = True
                 if global_values.version_match_reqd:
                     if compver_found:
                         set_reviewed = True
+                        ignore = False
                 elif compname_found:
                     set_reviewed = True
+                    ignore = False
                 if new_match_result > self.sig_match_result:
                     self.sig_match_result = new_match_result
                     self.best_sigpath = sigentry.path
@@ -126,6 +130,9 @@ class Component:
                 self.reason = reason
                 logging.debug(f"- Component {self.name}/{self.version}: {reason}")
                 self.set_reviewed()
+            if ignore and global_values.ignore_no_path_matches:
+                self.set_ignore()
+                self.reason = f"Mark IGNORED - compname or version not found in paths & --ignore_no_path_matches set"
 
     @staticmethod
     def filter_name_string(name):
@@ -133,7 +140,7 @@ class Component:
         # - for, with, in, on,
         # Remove strings in brackets
         # Replace / with space
-        ret_name = re.sub(r" for | with | in | on | a |apache ", r" ", name, re.IGNORECASE)
+        ret_name = re.sub(r" for | with | in | on | a |apache ", r" ", name, flags=re.IGNORECASE)
         ret_name = re.sub(r"\(.*\)", r"", ret_name)
         ret_name = re.sub(r"/", r" ", ret_name)
         return ret_name

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bd_sig_filter"
+version = "1.0"
+authors = [
+  { name="Matthew Brady", email="mbrad@synopsys.com" },
+]
+description = "BD_sig_filter - BD Script to ignore components matched from Signature scan likely to be partial or invalid matches."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "blackduck>1.0.3",
+    "tabulate",
+    "thefuzz",
+]
+
+[project.urls]
+Homepage = "https://github.com/matthewb66/bd_sig_filter"
+Issues = "https://github.com/matthewb66/bd_sig_filter/issues"
+
+[project.scripts]
+bd-sig-filter = "bd_sig_filter:main.main"
