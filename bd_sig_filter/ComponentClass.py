@@ -18,7 +18,7 @@ class Component:
         self.sig_match_result = -1
         self.compname_found = False
         self.compver_found = False
-        self.reason = 'No Action'
+        self.reason = 'No Action - compname or version not found in Sig paths'
         self.best_sigpath = ''
 
     def get_compverid(self):
@@ -140,9 +140,19 @@ class Component:
         # - for, with, in, on,
         # Remove strings in brackets
         # Replace / with space
-        ret_name = re.sub(r" for | with | in | on | a |apache ", r" ", name, flags=re.IGNORECASE)
-        ret_name = re.sub(r"\(.*\)", r"", ret_name)
-        ret_name = re.sub(r"/", r" ", ret_name)
+        ret_name = re.sub(r"\(.*\)", r"", name)
+        for rep in [r" for ", r" with ", r" in ", r" on ", r" a ", r" the ", r" by ",
+                    r" and ", r"^apache | apache | apache$", r" bundle ", r" only | only$", r" from ",
+                    r" to ", r" - "]:
+            ret_name = re.sub(rep, " ", ret_name, flags=re.IGNORECASE)
+        ret_name = re.sub(r"[/@#:]", " ", ret_name)
+        ret_name = re.sub(r" \w$| \w |^\w ", r" ", ret_name)
+        ret_name = ret_name.replace("::", " ")
+        ret_name = re.sub(r"  *", r" ", ret_name)
+        ret_name = re.sub(r"^ ", r"", ret_name)
+        ret_name = re.sub(r" $", r"", ret_name)
+
+        logging.debug(f"filter_name_string(): Compname '{name}' replaced with '{ret_name}'")
         return ret_name
 
     @staticmethod

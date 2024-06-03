@@ -17,6 +17,7 @@ class SigEntry:
             return
 
     def search_component(self, compname, compver):
+        logging.debug("")
         logging.debug(f"search_component() Checking Comp '{compname}/{compver}' - {self.path}:")
         # If component_version_reqd:
         # - folder matches compname and compver
@@ -33,8 +34,10 @@ class SigEntry:
         compver_in_element = 0
 
         # test of path search
-        comp_in_path = fuzz.token_set_ratio(compstring, self.path)
-        logging.debug(f"search_component(): comp_in_path is {comp_in_path}: path='{self.path}")
+        newpath = self.path.replace(os.sep, " ")
+        newpath = re.sub(r"([a-zA-Z-]*)[0-9] ", "\1 ", newpath)
+        comp_in_path = fuzz.token_set_ratio(compstring, newpath)
+        logging.debug(f"search_component(): TEST comp_in_path is {comp_in_path}: path='{self.path}")
 
         found_compname_only = False
         for element in self.elements:
@@ -62,6 +65,8 @@ class SigEntry:
                 if compver_in_element > 50:
                     logging.debug(f"search_component() - MATCHED component version ({compver}) in '{element}'")
                     return True, True, element_in_compname + compver_in_element
+                else:
+                    test = 1
 
         if found_compname_only:
             logging.debug("search_component() - MATCHED Compname only")
@@ -89,9 +94,11 @@ class SigEntry:
                     return True, f"Found '{e}' in Signature match path '{self.path}'"
 
         if not global_values.no_ignore_test:
-            test_folders = ['test', 'tests']
+            test_folders = r"^test$|^tests$|^testsuite$"
             for e in self.elements:
-                if e in test_folders:
+                if re.search(test_folders, e, flags=re.IGNORECASE) is not None:
                     return True, f"Found '{e}' in Signature match path '{self.path}'"
+                # if e in test_folders:
+                #     return True, f"Found '{e}' in Signature match path '{self.path}'"
 
         return False, ''
