@@ -161,10 +161,18 @@ class ComponentList:
 
         count = 0
         for ignore_array in ignore_comps:
-            bulk_data = {
+            ignore_bulk_data = {
                 "components": ignore_array,
                 # "reviewStatus": "REVIEWED",
                 "ignored": True,
+                # "usage": "DYNAMICALLY_LINKED",
+                # "inAttributionReport": true
+            }
+
+            comment_bulk_data = {
+                "components": ignore_array,
+                "comment": "Ignored by bd_sig_filter() script - Sig path in excluded/text folder or duplicate",
+                # "ignored": True,
                 # "usage": "DYNAMICALLY_LINKED",
                 # "inAttributionReport": true
             }
@@ -175,8 +183,17 @@ class ComponentList:
                     "Accept": "application/vnd.blackducksoftware.bill-of-materials-6+json",
                     "Content-Type": "application/vnd.blackducksoftware.bill-of-materials-6+json"
                 }
-                r = global_values.bd.session.patch(url, json=bulk_data, headers=headers)
+                r = global_values.bd.session.patch(url, json=ignore_bulk_data, headers=headers)
                 r.raise_for_status()
+
+                url = ver_dict['_meta']['href'] + '/bulk-comment'
+                headers = {
+                    "Accept": "application/vnd.blackducksoftware.bill-of-materials-6+json",
+                    "Content-Type": "application/vnd.blackducksoftware.bill-of-materials-6+json"
+                }
+                r = global_values.bd.session.post(url, json=comment_bulk_data, headers=headers)
+                r.raise_for_status()
+
                 count += len(ignore_array)
             except requests.HTTPError as err:
                 global_values.bd.http_error_handler(err)
@@ -207,9 +224,17 @@ class ComponentList:
 
         count = 0
         for review_array in review_comps:
-            bulk_data = {
+            review_bulk_data = {
                 "components": review_array,
                 "reviewStatus": "REVIEWED",
+                # "ignored": True,
+                # "usage": "DYNAMICALLY_LINKED",
+                # "inAttributionReport": true
+            }
+
+            comment_bulk_data = {
+                "components": review_array,
+                "comment": "Reviewed by bd_sig_filter() script - comp name and/or version found in Sig path",
                 # "ignored": True,
                 # "usage": "DYNAMICALLY_LINKED",
                 # "inAttributionReport": true
@@ -221,8 +246,17 @@ class ComponentList:
                     "Accept": "application/vnd.blackducksoftware.bill-of-materials-6+json",
                     "Content-Type": "application/vnd.blackducksoftware.bill-of-materials-6+json"
                 }
-                r = global_values.bd.session.patch(url, json=bulk_data, headers=headers)
+                r = global_values.bd.session.patch(url, json=review_bulk_data, headers=headers)
                 r.raise_for_status()
+
+                url = ver_dict['_meta']['href'] + '/bulk-comment'
+                headers = {
+                    "Accept": "application/vnd.blackducksoftware.bill-of-materials-6+json",
+                    "Content-Type": "application/vnd.blackducksoftware.bill-of-materials-6+json"
+                }
+                r = global_values.bd.session.post(url, json=comment_bulk_data, headers=headers)
+                r.raise_for_status()
+
                 count += len(review_array)
 
             except requests.HTTPError as err:
@@ -246,3 +280,4 @@ class ComponentList:
             data.append([f"{comp.name[:25]}/{comp.version[:10]}", type, comp.is_ignored(), comp.get_reviewed_status(),
                          comp.ignore, comp.mark_reviewed, comp.reason])
         return data
+

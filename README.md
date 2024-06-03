@@ -1,7 +1,7 @@
 # bd_sig_filter
 BD Script to ignore components matched from Signature scan likely to be partial or invalid matches.
 
-# PROVISION OF THIS SCRIPT
+## PROVISION OF THIS SCRIPT
 This script is provided under the MIT OSS license (see LICENSE file).
 It does not represent any extension of licensed functionality of Synopsys software itself and is provided as-is, without warranty or liability.
 If you have comments or issues, please raise a GitHub issue here. Synopsys support is not able to respond to support tickets for this OSS utility. Users of this pilot project commit to engage properly with the authors to address any identified issues.
