@@ -1,4 +1,4 @@
-# bd_sig_filter
+# bd_sig_filter - v1.5
 BD Script to ignore components matched from Signature scan likely to be partial or invalid matches.
 
 ## PROVISION OF THIS SCRIPT
@@ -10,10 +10,12 @@ If you have comments or issues, please raise a GitHub issue here. Synopsys suppo
 Black Duck Signature matching is a unique and powerful way to find OSS and 3rd party code within your applications and
 environments.
 
-Signature matching uses hierarchical folder analysis to find matches with depth, identifying the most likely components matching the project.
-Many competitive SCA solutions use individual file matching across all files in the project which is not effective 
-to identify component matches because the majority of files in a component do not change between versions, 
-so multiple matches will be identified for every file.
+Signature matching uses hierarchical folder analysis to find matches with depth, identifying the most likely components
+matching the project by examining all files in all folders as a whole.
+Many competitive SCA solutions use individual file matching for files in the project, but this is not suitable 
+to identify component matches because the majority of files in components do not change between versions, 
+so multiple version matches will be identified for every file. It is therefore impossible to infer an overall component
+version by looking at the individual files.
 
 However, Signature matching can still produce false positive matches, especially where template code hierarchies 
 exist in custom and OSS code.
@@ -29,16 +31,14 @@ name and version in the path to determine matches which are likely correct and o
 
 It can also ignore components only matched from paths which should be excluded (Synopsys tools, cache/config folders 
 and test folders), and components which are duplicates across versions where the version string is not found
-in the signature match path.
+in the signature match path or one match is a dependency.
 
-Options can be used to enable ignore and review actions, and other features.
+Options are available to enable ignore and review actions, and other features.
 
 ## PREREQUISITES
-
 Python 3.8+ must be installed prior to using this script.
 
 ## INSTALLATION
-
 The package can be installed using the command:
 
     python3 -m pip install bd-sig-filter
@@ -52,7 +52,6 @@ Alternatively, the repository can be cloned and the script run directly using th
     python3 bd_sig_filter/bd_sig_filter.py OPTIONS
 
 ## USAGE
-
 If installed as a package, run the utility using the command `bd-sig-filter`.
 
 Alternatively if you have cloned the repo, use a command similar to:
@@ -61,7 +60,7 @@ Alternatively if you have cloned the repo, use a command similar to:
 
 The package can be invoked as follows:
 
-    usage: bd_sig_filter [-h] [--blackduck_url BLACKDUCK_URL] [--blackduck_api_token BLACKDUCK_API_TOKEN] [--blackduck_trust_cert] [-p PROJECT] [-v VERSION] [--debug] [--logfile LOGFILE]
+    usage: bd-sig-filter [-h] [--blackduck_url BLACKDUCK_URL] [--blackduck_api_token BLACKDUCK_API_TOKEN] [--blackduck_trust_cert] [-p PROJECT] [-v VERSION] [--debug] [--logfile LOGFILE]
                          [--report_file REPORT_FILE] [--version_match_reqd] [--ignore] [--review] [--no_ignore_test] [--no_ignore_synopsys] [--no_ignore_defaults]
                          [--ignore_no_path_matches]
 
@@ -90,6 +89,8 @@ The package can be invoked as follows:
       --ignore_no_path_matches
                             Also ignore components with no component/version match in signature path
                             (Use with caution)
+      --report_unmatched    Report the list of components which will be left Unreviewed and why - these may need
+                            to be manually reviewed.
 
 The minimum required options are:
     
@@ -102,7 +103,8 @@ Environment variables BLACKDUCK_URL, BLACKDUCK_API_TOKEN and BLACKDUCK_TRUST_CER
 
 ## SCRIPT BEHAVIOUR
 The default behaviour of the script is to create a table of BOM components with details about what actions can be taken.
-By default no actions will be taken, with only the table being created.
+By default, no actions will be taken, with only the tables being created to explain what would happen if `--ignore` and `--review`
+options were specified.
 
 An example of the output table is shown below:
 
@@ -120,6 +122,8 @@ An example of the output table is shown below:
     Amazon MSK Library for AW/2.0.2       Dep+Sig       False      False       False            True              Mark REVIEWED - Dependency
     Apache HttpComponents Cor/5.2.4       Sig           False      False       True             False             Mark IGNORED - compname or version not found in paths & --ignore_no_path_matches set
     WSDL4J/1.5.1                          Sig           False      False       False            False             No Action
+    Xalan Java Serializer/2.7.2           Sig           False      False       False            False             No Action - Is a duplicate of dependency 'Xalan Java Serializer/2.7.3', has different component id/version but version found in sigpaths
+    Xalan Java Serializer/2.7.3           Dep           False      False       False            True              Mark REVIEWED - Dependency
 
 Note component names are truncated at 25 characters.
 
@@ -146,25 +150,71 @@ The following options can be specified:
                             as it may exclude components which are legitimate (the Signature match path does not
                             have to include the component name or version).
 
-The options --report_file and --logfile can be used to output the tabular report and logging data to
+The options `--report_file` and `--logfile` can be used to output the tabular report and logging data to
 specified files.
 
 ## PROPOSED WORKFLOW
-
-The script provides automatic classification of Signature scan results.
+The script can classify Signature scan results.
 
 It can mark components as reviewed which are either Dependencies, or which have signature match paths containing
-the component name (and optionally component version) and therefore highly likely to be correctly identified
+the component name (and optionally component version) and which are therefore highly likely to be correctly identified
 by Signature matching. Fuzzy pattern matching is used so there is the possibility
 that components could be marked as reviewed where only a partial match exists, or components which should be matched
-are not identified meaning that manual curation may still be required.
+are not identified meaning that some manual curation may still be required.
 
 It will also ignore components only matched within extraneous folders (for example created by Synopsys tools, 
 config/cache folders or test folders).
 
 Components shown with `No action` are Signature matches where the component name or version 
 could not be identified in the signature paths, so they are potential false matches and require manual review.
-Specify the `--ignore_no_path_matches` option to ignore these components automatically.
-Duplicate components with multiple versions where the version 
-is not found in the signature match path are also marked as ignored.
+Specify the `--ignore_no_path_matches` option to ignore these components automatically,
+however this should be used with caution as these components may be valid and should be manually reviewed.
 
+## PROCESSING DUPLICATE COMPONENTS
+The script processes multiple versions of the same component in the BOM in several ways as described below:
+
+### SCENARIO 1
+- Comp1 and Comp2 are different versions of the same component
+- Comp1 and Comp2 are BOTH dependencies
+
+Outcome:
+- Comp1 will be marked REVIEWED
+- Comp2 will be marked REVIEWED
+
+### SCENARIO 2
+- Comp1 and Comp2 are different versions of the same component
+- Comp1 is a dependency and Comp2 is a signature match
+- Comp2 name IS found but version string is NOT found in the Signature match paths
+
+Outcome:
+- Comp1 will be marked REVIEWED
+- Comp2 will be marked IGNORED
+
+### SCENARIO 3
+- Comp1 and Comp2 are different versions of the same component
+- Comp1 is a dependency and Comp2 is a signature match
+- Comp2 name and version strings ARE found in the Signature match paths
+
+Outcome:
+- Comp1 will be marked REVIEWED
+- Comp2 will be left unignored and not marked reviewed - for manual review
+
+### SCENARIO 4
+- Comp1 and Comp2 are different versions of the same component
+- Comp1 and Comp2 are both signature matches
+- Comp1 name and version strings ARE both found in the Signature match paths
+- Comp2 name IS found but version string is NOT found in the Signature match paths
+
+Outcome:
+- Comp1 will be marked REVIEWED
+- Comp2 will be IGNORED
+
+### SCENARIO 5
+- Comp1 and Comp2 are different versions of the same component
+- Comp1 and Comp2 are both signature matches
+- Comp1 name string IS found but version string is NOT found in the Signature match paths
+- Comp2 name string IS found but version string is NOT found in the Signature match paths
+
+Outcome:
+- Comp1 will be marked REVIEWED
+- Comp2 will be left unignored and not reviewed - for manual review
