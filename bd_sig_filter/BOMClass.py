@@ -71,3 +71,19 @@ class BOM:
         print(tabulate(table, headers=["Component", "Match Type", "Ignored", "Reviewed", "To be Ignored",
                                        "To be Reviewed", "Action"]))
         print()
+        if global_values.report_file != '':
+            with open(global_values.report_file, "a") as rfile:
+                # Writing data to a file
+                rfile.writelines(tabulate(table, headers=["Component", "Match Type", "Ignored", "Reviewed", "To be Ignored",
+                                       "To be Reviewed", "Action"]))
+                rfile.writelines("")
+
+    def report_unmatched(self):
+        data = self.complist.get_unmatched_list()
+        data = "UNMATCHED COMPONENTS:\n" + data
+        print(data)
+        if global_values.report_file != '':
+            with open(global_values.report_file, "a") as rfile:
+                # Writing data to a file
+                rfile.writelines(data)
+

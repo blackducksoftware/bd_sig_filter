@@ -87,11 +87,20 @@ class ComponentList:
         for comp in self.components:
             if comp.is_ignored():
                 continue
+            # DEBUG
+            # if comp.is_only_signature():
+            #     arr = comp.get_origin_compnames()
+            #     print(f"names '{arr}")
+            #     comp.print_sigpaths()
+            # continue
+            # END DEBUG
             if comp.is_dependency():
                 comp.set_reviewed()
                 comp.reason = "Mark REVIEWED - Dependency"
             elif comp.is_only_signature():
                 comp.process_signatures()
+            else:
+                comp.reason = 'No action - not Signature match'
 
         # look for duplicate components (same compid) and ignore
         logging.debug("\nDUPLICATE SIGNATURE MATCHES FILTER PHASE")
@@ -281,3 +290,11 @@ class ComponentList:
                          comp.ignore, comp.mark_reviewed, comp.reason])
         return data
 
+    def get_unmatched_list(self):
+        data = ''
+        for comp in self.components:
+            if comp.unmatched:
+                paths = comp.get_sigpaths()
+                orinames = ','.join(comp.oriname_arr)
+                data += f"Comp: {comp.name}/{comp.version} (Origin names={orinames}):\n{paths}"
+        return data
