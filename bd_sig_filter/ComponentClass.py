@@ -48,7 +48,8 @@ class Component:
         return False
 
     def is_signature(self):
-        sig_types = ['FILE_EXACT', 'FILE_SOME_FILES_MODIFIED', 'FILE_FILES_ADDED_DELETED_AND_MODIFIED']
+        sig_types = ['FILE_EXACT', 'FILE_SOME_FILES_MODIFIED', 'FILE_FILES_ADDED_DELETED_AND_MODIFIED',
+                     'FILE_EXACT_FILE_MATCH']
         match_types = self.get_matchtypes()
         for m in sig_types:
             if m in match_types:
@@ -60,6 +61,10 @@ class Component:
 
     def set_ignore(self):
         self.ignore = True
+        self.mark_reviewed = False
+
+    def set_unignore(self):
+        self.ignore = False
 
     def get_reviewed_status(self):
         try:
@@ -70,9 +75,11 @@ class Component:
         return False
 
     def set_reviewed(self):
-        if not self.get_reviewed_status():
-            self.mark_reviewed = True
-        return
+        self.mark_reviewed = True
+        self.ignore = False
+
+    def set_notreviewed(self):
+        self.mark_reviewed = False
 
     def is_ignored(self):
         try:

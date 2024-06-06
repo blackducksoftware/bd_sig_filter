@@ -41,7 +41,7 @@ class SigEntry:
             # comp_in_path = fuzz.token_set_ratio(compstring, newpath)
             compname_in_path = fuzz.token_set_ratio(cname, newpath)
             compver_in_path = fuzz.token_set_ratio(compver, newpath)
-            if compname_in_path + compver_in_path > 90:
+            if compname_in_path + compver_in_path > 100:
                 if compname_in_path + compver_in_path > best_match_name + best_match_ver:
                     best_match_name = compname_in_path
                     best_match_ver = compver_in_path
@@ -52,7 +52,7 @@ class SigEntry:
         ver_bool = False
         if best_match_name > 45:
             name_bool = True
-        if best_match_ver > 45:
+        if best_match_ver > 60:
             ver_bool = True
 
         return name_bool, ver_bool, best_match_name + best_match_ver
