@@ -26,6 +26,7 @@ parser.add_argument("--no_ignore_test", help="Do not ignore components in test f
 parser.add_argument("--no_ignore_synopsys", help="Do not ignore components in synopsys tool folders", action='store_true')
 parser.add_argument("--no_ignore_defaults", help="Do not ignore components in default folders", action='store_true')
 parser.add_argument("--ignore_no_path_matches", help="Also ignore components with no component/version match in signature path", action='store_true')
+parser.add_argument("--report_unmatched", help="Report unmatched (not reviewed or ignored) components", action='store_true')
 
 args = parser.parse_args()
 
@@ -113,6 +114,9 @@ def check_args():
             logging.error(f"Report file '{args.report_file}' already exists - exiting")
             terminate = True
         global_values.report_file = args.report_file
+
+    if args.report_unmatched:
+        global_values.report_unmatched = True
 
 
     if terminate:

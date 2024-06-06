@@ -5,6 +5,7 @@ from . import config
 # import bd_project
 import logging
 from .BOMClass import BOM
+from . import global_values
 # import platform
 
 
@@ -19,6 +20,8 @@ def main():
     bom.update_components()
     bom.report_summary()
     bom.report_full()
+    if global_values.report_unmatched:
+        bom.report_unmatched()
 
     return
 

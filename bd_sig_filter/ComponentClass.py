@@ -18,8 +18,10 @@ class Component:
         self.sig_match_result = -1
         self.compname_found = False
         self.compver_found = False
-        self.reason = 'No Action - compname or version not found in Sig paths'
+        self.reason = 'No Action'
         self.best_sigpath = ''
+        self.oriname_arr = self.get_origin_compnames()
+        self.unmatched = False
 
     def get_compverid(self):
         try:
@@ -54,7 +56,7 @@ class Component:
         return False
 
     def is_only_signature(self):
-        return (not self.is_dependency() and self.is_signature())
+        return not self.is_dependency() and self.is_signature()
 
     def set_ignore(self):
         self.ignore = True
@@ -80,6 +82,7 @@ class Component:
 
     def process_signatures(self):
         all_paths_ignoreable = True
+        unmatched = False
         reason = ''
         for sigentry in self.sigentry_arr:
             ignore, reason = sigentry.filter_folders()
@@ -100,23 +103,33 @@ class Component:
             self.sig_match_result = 0
             set_reviewed = False
             ignore = True
+            unmatched = True
+            reason = f"No Action - component name '{self.oriname_arr}' not found in signature paths"
             for sigentry in self.sigentry_arr:
+                # compname_found, compver_found,\
+                #     new_match_result = sigentry.search_component(self.filter_name, self.filter_version)
                 compname_found, compver_found,\
-                    new_match_result = sigentry.search_component(self.filter_name, self.filter_version)
+                    new_match_result = sigentry.search_component(self.oriname_arr, self.filter_version)
                 logging.debug(f"Compname in path {compname_found}, Version in path {compver_found}, "
                               f"Match result {new_match_result}, Path '{sigentry.path}'")
+
                 if compver_found:
                     self.compver_found = True
                     ignore = False
+                    unmatched = False
                 if compname_found:
                     self.compname_found = True
                 if global_values.version_match_reqd:
                     if compver_found:
                         set_reviewed = True
                         ignore = False
+                        unmatched = False
+                    else:
+                        reason = f"No Action - component version {self.filter_version} not found (and required because --version_match_reqd set)"
                 elif compname_found:
                     set_reviewed = True
                     ignore = False
+                    unmatched = False
                 if new_match_result > self.sig_match_result:
                     self.sig_match_result = new_match_result
                     self.best_sigpath = sigentry.path
@@ -125,14 +138,17 @@ class Component:
                 if self.compver_found:
                     reason = f"Mark REVIEWED - Compname & version in path '{self.best_sigpath}', Match result {self.sig_match_result}"
                 elif self.compname_found:
-                    reason = f"Mark REVIEWED - Compname in path '{self.best_sigpath}', Match result {self.sig_match_result}"
+                    reason = f"Mark REVIEWED - Compname {self.oriname_arr} in path '{self.best_sigpath}', Match result {self.sig_match_result}"
 
-                self.reason = reason
                 logging.debug(f"- Component {self.name}/{self.version}: {reason}")
                 self.set_reviewed()
-            if ignore and global_values.ignore_no_path_matches:
-                self.set_ignore()
-                self.reason = f"Mark IGNORED - compname or version not found in paths & --ignore_no_path_matches set"
+                unmatched = False
+        if ignore and global_values.ignore_no_path_matches:
+            self.set_ignore()
+            reason = f"Mark IGNORED - compname or version not found in paths & --ignore_no_path_matches set"
+
+        self.reason = reason
+        self.unmatched = unmatched
 
     @staticmethod
     def filter_name_string(name):
@@ -148,7 +164,7 @@ class Component:
         ret_name = re.sub(r"[/@#:]", " ", ret_name)
         ret_name = re.sub(r" \w$| \w |^\w ", r" ", ret_name)
         ret_name = ret_name.replace("::", " ")
-        ret_name = re.sub(r"  *", r" ", ret_name)
+        ret_name = re.sub(r" +", r" ", ret_name)
         ret_name = re.sub(r"^ ", r"", ret_name)
         ret_name = re.sub(r" $", r"", ret_name)
 
@@ -160,9 +176,11 @@ class Component:
         # Remove +git*
         # Remove -snapshot*
         # Replace / with space
-        ret_version = re.sub(r"\+git.*", r"", version, re.IGNORECASE)
-        ret_version = re.sub(r"-snapshot.*", r"", ret_version, re.IGNORECASE)
+        ret_version = re.sub(r"\+git.*", r"", version, flags=re.IGNORECASE)
+        ret_version = re.sub(r"-snapshot.*", r"", ret_version, flags=re.IGNORECASE)
         ret_version = re.sub(r"/", r" ", ret_version)
+        ret_version = re.sub(r"^v", r"", ret_version, flags=re.IGNORECASE)
+        ret_version = re.sub(r"\+*", r"", ret_version, flags=re.IGNORECASE)
         return ret_version
 
     def get_compid(self):
@@ -171,3 +189,40 @@ class Component:
             return compurl.split('/')[-1]
         except KeyError:
             return ''
+
+    def print_origins(self):
+        try:
+            for ori in self.data['origins']:
+                print(f"Comp '{self.name}/{self.version}' Origin '{ori['externalId']}' Name '{ori['name']}'")
+        except KeyError:
+            print(f"Comp '{self.name}/{self.version}' No Origin")
+
+    def get_origin_compnames(self):
+        compnames_arr = []
+        try:
+            for ori_entry in self.data['origins']:
+                ori = ori_entry['externalId']
+                ori_ver = ori_entry['name']
+                ori_string = ori.replace(f"{ori_ver}", '')
+                arr = re.split(r"[:/#]", ori_string)
+                new_name = arr[-2]
+                if new_name not in compnames_arr:
+                    logging.debug(
+                        f"Comp '{self.name}/{self.version}' Compname calculate from origin '{arr[-2]}' - origin='{ori}'")
+                    compnames_arr.append(arr[-2])
+            if self.filter_name.find(' ') == -1:
+                # Single word component name
+                if self.filter_name not in compnames_arr:
+                    compnames_arr.append(self.filter_name)
+        except (KeyError, IndexError):
+            logging.debug(f"Comp '{self.name}/{self.version}' Compname calculate from compname only '{self.name}'")
+            compnames_arr.append(self.filter_name)
+        return compnames_arr
+
+    def get_sigpaths(self):
+        data = ''
+        count = 0
+        for sigentry in self.sigentry_arr:
+            data += f"{sigentry.get_sigpath()}\n"
+            count += 1
+        return data
