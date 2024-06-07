@@ -32,29 +32,34 @@ class SigEntry:
 
         best_match_name = 0
         best_match_ver = 0
+        name_bool = False
+        ver_bool = False
         # match_path = ''
         for cname in compname_arr:
             # compstring = f"{cname} {compver}"
 
             # test of path search
-            newpath = self.path.replace(os.sep, " ")
+            # newpath = self.path.replace(os.sep, " ")
+            rep = f"[{os.sep}!#]"
+            newpath = re.sub(rep, ' ', self.path).lower()
             # comp_in_path = fuzz.token_set_ratio(compstring, newpath)
-            compname_in_path = fuzz.token_set_ratio(cname, newpath)
-            compver_in_path = fuzz.token_set_ratio(compver, newpath)
-            if compname_in_path + compver_in_path > 100:
-                if compname_in_path + compver_in_path > best_match_name + best_match_ver:
-                    best_match_name = compname_in_path
-                    best_match_ver = compver_in_path
-                    # match_path = self.path
-                    logging.debug(f"search_component(): TEST '{cname}/{compver}' - {compname_in_path,compver_in_path}: path='{self.path}")
+            compname_setratio = fuzz.token_set_ratio(cname, newpath)
+            compname_sortratio = fuzz.token_sort_ratio(cname, newpath)
+            compname_partialratio = fuzz.partial_ratio(cname, newpath)
+            compver_setratio = fuzz.token_set_ratio(compver, newpath)
+            compver_sortratio = fuzz.token_sort_ratio(compver, newpath)
+            compver_partialratio = fuzz.partial_ratio(compver, newpath)
 
-        name_bool = False
-        ver_bool = False
+            if compname_setratio + compver_partialratio > best_match_name + best_match_ver:
+                best_match_name = compname_setratio
+                best_match_ver = compver_partialratio
+                # match_path = self.path
+                logging.debug(f"search_component(): TEST '{cname}/{compver}' - {compname_setratio,compver_partialratio}: path='{self.path}")
+
         if best_match_name > 45:
             name_bool = True
-        if best_match_ver > 60:
+        if best_match_ver > 80:
             ver_bool = True
-
         return name_bool, ver_bool, best_match_name + best_match_ver
         # compstring = f"{compname} {compver}"
         # element_in_compname = 0
@@ -102,23 +107,23 @@ class SigEntry:
             #                'scan.cli.impl-standalone.jar', 'seeker-agent.tgz', 'seeker-agent.zip',
             #                'Black_Duck_Scan_Installation']
 
-            syn_folders_re = (f"{os.sep}(\.synopsys|synopsys-detect|\.coverity|synopsys-detect.*\.jar|scan\.cli\.impl-standalone\.jar|"
-                              f"seeker-agent.*|Black_Duck_Scan_Installation){os.sep}")
-            res = re.search(syn_folders_re, self.path)
+            syn_folders_re = (f"\\{os.sep}(\.synopsys|synopsys-detect|\.coverity|synopsys-detect.*\.jar|scan\.cli\.impl-standalone\.jar|"
+                              f"seeker-agent.*|Black_Duck_Scan_Installation)\\{os.sep}")
+            res = re.search(syn_folders_re, os.sep + self.path + os.sep)
             if res:
                 return True, f"Found {res.group()} folder in Signature match path '{self.path}'"
 
         if not global_values.no_ignore_defaults:
             # def_folders = ['.cache', '.m2', '.local', '.cache','.config', '.docker', '.npm', '.npmrc', '.pyenv',
             #                '.Trash', '.git', 'node_modules']
-            def_folders_re = (f"{os.sep}(\.cache|\.m2|\.local|\.config|\.docker|\.npm|\.npmrc|"
-                              f"\.pyenv|\.Trash|\.git|node_modules){os.sep}")
+            def_folders_re = (f"\\{os.sep}(\.cache|\.m2|\.local|\.config|\.docker|\.npm|\.npmrc|"
+                              f"\.pyenv|\.Trash|\.git|node_modules)\\{os.sep}")
             res = re.search(def_folders_re, os.sep + self.path + os.sep)
             if res:
                 return True, f"Found {res.group()} folder in Signature match path '{self.path}'"
 
         if not global_values.no_ignore_test:
-            test_folders = f"{os.sep}(test|tests|testsuite){os.sep}"
+            test_folders = f"\\{os.sep}(test|tests|testsuite)\\{os.sep}"
             res = re.search(test_folders, os.sep + self.path + os.sep, flags=re.IGNORECASE)
             if res:
                 return True, f"Found {res.group()} in Signature match path '{self.path}'"
