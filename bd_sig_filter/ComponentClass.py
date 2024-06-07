@@ -95,7 +95,6 @@ class Component:
             ignore, reason = sigentry.filter_folders()
             if not ignore:
                 all_paths_ignoreable = False
-                break
             else:
                 self.sigentry_arr.remove(sigentry)
 
@@ -143,9 +142,9 @@ class Component:
                 # print(self.name, self.version, src['commentPath'])
             if set_reviewed:
                 if self.compver_found:
-                    reason = f"Mark REVIEWED - Compname & version in path '{self.best_sigpath}', Match result {self.sig_match_result}"
+                    reason = f"Mark REVIEWED - Compname & version in path '{self.best_sigpath}' (Match result {self.sig_match_result})"
                 elif self.compname_found:
-                    reason = f"Mark REVIEWED - Compname {self.oriname_arr} in path '{self.best_sigpath}', Match result {self.sig_match_result}"
+                    reason = f"Mark REVIEWED - Compname {self.oriname_arr} in path '{self.best_sigpath}' (Match result {self.sig_match_result})"
 
                 logging.debug(f"- Component {self.name}/{self.version}: {reason}")
                 self.set_reviewed()
@@ -176,7 +175,7 @@ class Component:
         ret_name = re.sub(r" $", r"", ret_name)
 
         logging.debug(f"filter_name_string(): Compname '{name}' replaced with '{ret_name}'")
-        return ret_name
+        return ret_name.lower()
 
     @staticmethod
     def filter_version_string(version):
@@ -188,7 +187,8 @@ class Component:
         ret_version = re.sub(r"/", r" ", ret_version)
         ret_version = re.sub(r"^v", r"", ret_version, flags=re.IGNORECASE)
         ret_version = re.sub(r"\+*", r"", ret_version, flags=re.IGNORECASE)
-        return ret_version
+
+        return ret_version.lower()
 
     def get_compid(self):
         try:
@@ -212,18 +212,18 @@ class Component:
                 ori_ver = ori_entry['name']
                 ori_string = ori.replace(f"{ori_ver}", '')
                 arr = re.split(r"[:/#]", ori_string)
-                new_name = arr[-2]
+                new_name = arr[-2].lower()
                 if new_name not in compnames_arr:
                     logging.debug(
-                        f"Comp '{self.name}/{self.version}' Compname calculate from origin '{arr[-2]}' - origin='{ori}'")
-                    compnames_arr.append(arr[-2])
+                        f"Comp '{self.name}/{self.version}' Compname calculate from origin '{new_name}' - origin='{ori}'")
+                    compnames_arr.append(new_name)
             if self.filter_name.find(' ') == -1:
                 # Single word component name
                 if self.filter_name not in compnames_arr:
-                    compnames_arr.append(self.filter_name)
+                    compnames_arr.append(self.filter_name.lower())
         except (KeyError, IndexError):
             logging.debug(f"Comp '{self.name}/{self.version}' Compname calculate from compname only '{self.name}'")
-            compnames_arr.append(self.filter_name)
+            compnames_arr.append(self.filter_name.lower())
         return compnames_arr
 
     def get_sigpaths(self):

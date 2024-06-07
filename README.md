@@ -1,5 +1,7 @@
-# bd_sig_filter - v1.5
-BD Script to ignore components matched from Signature scan likely to be partial or invalid matches.
+# bd_sig_filter - v1.6
+BD Script to ignore components matched from Signature scan likely to be partial or invalid matches, and 
+mark components reviewed which are definitive matches (dependency or component name and version in matched path for
+signature matches).
 
 ## PROVISION OF THIS SCRIPT
 This script is provided under the MIT OSS license (see LICENSE file).
@@ -12,7 +14,7 @@ environments.
 
 Signature matching uses hierarchical folder analysis to find matches with depth, identifying the most likely components
 matching the project by examining all files in all folders as a whole.
-Many competitive SCA solutions use individual file matching for files in the project, but this is not suitable 
+Many competitive SCA solutions use individual file matching for files in the project, but this is not absolutely suitable 
 to identify component matches because the majority of files in components do not change between versions, 
 so multiple version matches will be identified for every file. It is therefore impossible to infer an overall component
 version by looking at the individual files.
@@ -31,7 +33,8 @@ name and version in the path to determine matches which are likely correct and o
 
 It can also ignore components only matched from paths which should be excluded (Synopsys tools, cache/config folders 
 and test folders), and components which are duplicates across versions where the version string is not found
-in the signature match path or one match is a dependency.
+in the signature match path, one match is a dependency or where they are simply duplicates (same component name and version
+but shown in the BOM as separate entries).
 
 Options are available to enable ignore and review actions, and other features.
 
@@ -197,7 +200,7 @@ Outcome:
 
 Outcome:
 - Comp1 will be marked REVIEWED
-- Comp2 will be left unignored and not marked reviewed - for manual review
+- Comp2 will be marked REVIEWED
 
 ### SCENARIO 4
 - Comp1 and Comp2 are different versions of the same component

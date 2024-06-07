@@ -122,10 +122,10 @@ class ComponentList:
                             comp2.reason = f"Mark IGNORED - Is a duplicate of dependency '{comp1.name[:25]}/{comp1.version[:10]}', has different component id or version and no version in sigpaths"
                             comp2.set_ignore()
                             comp2.set_notreviewed()
-                        else:
+                        elif comp1.filter_version == comp2.filter_version:
                             logging.debug(
                                 f"No Action for {comp2.name[:25]}/{comp2.version} as it has version in sigpaths but is a duplicate to {comp1.name[:25]}/{comp1.version} which is a dependency")
-                            comp2.reason = f"No Action - Is a duplicate of dependency '{comp1.name[:25]}/{comp1.version[:10]}', has different component id/version but version found in sigpaths"
+                            comp2.reason = f"No Action - Is a duplicate of dependency '{comp1.name[:25]}/{comp1.version[:10]}', has same version and version found in sigpaths but is a duplicate component"
                             comp2.set_notreviewed()
                             comp2.set_unignore()
                     elif comp2.is_dependency():
@@ -135,10 +135,10 @@ class ComponentList:
                             comp1.reason = f"Mark IGNORED - Is a duplicate of dependency '{comp2.name[:25]}/{comp2.version[:10]}' but has different component id or version and no version in sigpaths"
                             comp1.set_ignore()
                             comp1.set_notreviewed()
-                        else:
+                        elif comp1.filter_version == comp2.filter_version:
                             logging.debug(
                                 f"No Action for {comp1.name[:25]}/{comp1.version} as it has version in sigpaths but is a duplicate to {comp2.name[:25]}/{comp2.version} which is a dependency")
-                            comp1.reason = f"No Action - Is a duplicate of dependency '{comp2.name[:25]}/{comp2.version[:10]}', has different component id/version but version found in sigpaths"
+                            comp1.reason = f"No Action - Is a duplicate of dependency '{comp2.name[:25]}/{comp2.version[:10]}', , has same version and version found in sigpaths but is a duplicate component"
                             comp1.set_notreviewed()
                             comp1.set_unignore()
 
@@ -170,8 +170,16 @@ class ComponentList:
                         comp1.reason = f"Mark REVIEWED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but both have no version in Signature paths (chose '{comp1.version}')"
                         comp2.set_notreviewed()
                         comp2.reason = f"No Action - Is a duplicate to '{comp1.name[:25]}/{comp1.version[:10]}' but both have no version in Signature paths (chose '{comp1.version}')"
+                    elif comp1.filter_version == comp2.filter_version:
+                        logging.debug(
+                            f"- Duplicate components {comp1.name}/{comp1.version} and {comp2.name}/{comp2.version} - "
+                            f"{comp1.name} marked as REVIEWED")
+                        comp1.set_reviewed()
+                        comp1.reason = f"Mark REVIEWED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' and both have version in Signature paths (chose '{comp1.version}')"
+                        comp2.set_notreviewed()
+                        comp2.reason = f"No Action - Is a duplicate to '{comp1.name[:25]}/{comp1.version[:10]}' and both have version in Signature paths (chose '{comp1.version}')"
                     else:
-                        # Nothing to do
+                        # Duplicate components and versions
                         logging.debug(f"- Will retain both components {comp1.filter_name}/{comp1.filter_version} and {comp2.filter_name}/{comp2.filter_version} - "
                               f"{comp1.sig_match_result},{comp2.sig_match_result}")
 
