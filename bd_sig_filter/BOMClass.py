@@ -55,20 +55,20 @@ class BOM:
                  ['After', self.complist.count(), self.complist.count_to_be_ignored(),
                   self.complist.count_to_be_reviewed(), self.complist.count_not_to_be_reviewed_ignored()]]
         print("SUMMARY:")
-        print(tabulate(table, headers=["", "Components", "Ignored", "Reviewed", "Neither"], tablefmt="simple"))
+        print(tabulate(table, headers=["", "Components", "Ignored", "Reviewed", "Neither (No Action)"], tablefmt="simple"))
         print()
 
         if global_values.report_file != '':
             with open(global_values.report_file, "w") as rfile:
                 # Writing data to a file
                 rfile.writelines("SUMMARY:")
-                rfile.writelines(tabulate(table, headers=["", "Components", "Ignored", "Reviewed", "Neither"],
+                rfile.writelines(tabulate(table, headers=["", "Components", "Ignored", "Reviewed", "Neither (No Action)"],
                                           tablefmt="Simple"))
                 rfile.writelines("")
 
     def report_full(self):
         table = self.complist.get_component_report_data()
-        print(tabulate(table, headers=["Component", "Match Type", "Ignored", "Reviewed", "To be Ignored",
+        print(tabulate(table, headers=["Component/Version", "Match Type", "Ignored", "Reviewed", "To be Ignored",
                                        "To be Reviewed", "Action"]))
         print()
         if global_values.report_file != '':
