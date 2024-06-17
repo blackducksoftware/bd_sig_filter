@@ -118,7 +118,6 @@ def check_args():
     if args.report_unmatched:
         global_values.report_unmatched = True
 
-
     if terminate:
         sys.exit(2)
     return

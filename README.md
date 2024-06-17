@@ -1,4 +1,4 @@
-# bd_sig_filter - v1.6
+# bd_sig_filter - v1.7
 BD Script to ignore components matched from Signature scan likely to be partial or invalid matches, and 
 mark components reviewed which are definitive matches (dependency or component name and version in matched path for
 signature matches).
@@ -137,41 +137,64 @@ The list of components shows the name, matchtypes and current ignore/review stat
 (after running the script with the `--ignore` and `--review` options) in the `To Be Ignored` and `To Be Reviewed` 
 columns with an explanation in the `Action` column.
 
-The following options can be specified:
+The `Match Score` value shows the result of fuzzy match searching for component name and version strings (note that
+origin component ID is used where available as opposed to the textual name of the component). A score of 200 shows
+an exact match of both component name and version in Signature paths; a lower value shows the possibility of less
+accurate matching.
 
-    --ignore:               Ignore components as shown in the `To Be Ignored` column
-    --review:               Mark components as reviewed as shown in the `To Be Reviewed` column
-    --no_ignore_test:       Do not ignore components with signature paths within test folders
-    --no_ignore_synopsys:   Do not ignore components with signature paths within Synopsys tools folders (for example '.synopsys')
-    --no_ignore_defaults:   Do not ignore components with signature paths in cache/config folders (for example '.git', '.m2', '.local')
-    --version_match_required:
-                            Enforce search for component version string in signature paths for marking reviewed
-                            (Paths containing only the component name will be used for matching otherwise)
-    --ignore_no_path_matches:
-                            Components with no match in the signature path are left unreviewed by default, allowing
-                            manual review. Use this option to ignore these components instead but use with caution
-                            as it may exclude components which are legitimate (the Signature match path does not
-                            have to include the component name or version).
+Options can be used to modify the behaviour of the script as follows:
+
+`--no_ignore_test`:
+        Stops components matched only by Signature scanning and containing test folders (test, tests,
+        testsuite or testsuites - case insensitive) being marked for ignore (which happens by default).
+
+`--no_ignore_synopsys`:
+        Stops components matched only by Signature scanning and containing Synopsys tools folders (.synopsys,
+        synopsys-detect, .coverity, synopsys-detect.\*.jar, scan.cli.impl-standalone.jar, seeker-agent.\*,
+        Black_Duck_Scan_Installation - case insensitive) being marked for ignore (which happens by default).
+
+`--no_ignore_defaults`:
+        Stops components matched only by Signature scanning and containing default folders (.cache, 
+        .m2, .local, .config, .docker, .npm, .npmrc, .pyenv, .Trash, .git, node_modules - case insensitive)
+        being marked for ignore (which happens by default).
+
+`--version_match_required`:
+        Enforce search for component version string in signature paths for marking components reviewed
+        (Paths containing only the component name will be used for matching otherwise)
+
+`--ignore_no_path_matches`:
+        Components with no match in the signature path are left unreviewed by default, allowing
+        manual review. Use this option to ignore these components instead but use with caution
+        as it may exclude components which are legitimate (the Signature match path does not
+        have to include the component name or version).
+
+`--report_unmatched`:
+        Create a list of Signature components which will be left UNreviewed 
 
 The options `--report_file` and `--logfile` can be used to output the tabular report and logging data to
 specified files.
 
 ## PROPOSED WORKFLOW
-The script can classify Signature scan results.
+The script can be used to classify Signature scan results.
 
-It can mark components as reviewed which are either Dependencies, or which have signature match paths containing
+It can mark components as reviewed which are either Dependencies, or which have Signature match paths containing
 the component name (and optionally component version) and which are therefore highly likely to be correctly identified
-by Signature matching. Fuzzy pattern matching is used so there is the possibility
-that components could be marked as reviewed where only a partial match exists, or components which should be matched
-are not identified meaning that some manual curation may still be required.
+by Signature matching.
 
-It will also ignore components only matched within extraneous folders (for example created by Synopsys tools, 
+It can also ignore components only Signature matched within extraneous folders (for example created by Synopsys tools, 
 config/cache folders or test folders).
 
 Components shown with `No action` are Signature matches where the component name or version 
 could not be identified in the signature paths, so they are potential false matches and require manual review.
-Specify the `--ignore_no_path_matches` option to ignore these components automatically,
-however this should be used with caution as these components may be valid and should be manually reviewed.
+
+After running the script and ignoring/reviewing components (using options `--ignore --review`), review the reported
+list of components from the script focussing on those marked with `No Action`. Optionally use the option `--report_unmatched`
+to list the `No Action` components with the full list of Signature match paths to enable assessment whether they should
+be included in the BOM.
+
+If, after inspection, all `No Action` components can be removed from the BOM, the `--ignore_no_path_matches` option can be used to
+ignore these components automatically, however this should be used with caution as these components may be valid 
+and should be manually reviewed.
 
 ## PROCESSING DUPLICATE COMPONENTS
 The script processes multiple versions of the same component in the BOM in several ways as described below:
