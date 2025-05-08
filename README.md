@@ -244,3 +244,26 @@ Outcome:
 Outcome:
 - Comp1 will be marked REVIEWED
 - Comp2 will be left unignored and not reviewed - for manual review
+
+### SCENARIO 6
+- Comp1 is a binary match with no version
+- Comp2 is a signature or dependency match
+- Comp1 and Comp2 are the same component
+
+Outcome:
+- Comp1 will be marked IGNORED
+
+### SCENARIO 7
+- Comp1 and Comp2 are different versions of the same component
+- Comp1 is a binary match and Comp2 is a dependency match
+
+Outcome:
+- Comp1 will be marked IGNORED
+
+### SCENARIO 8
+- Comp1 and Comp2 are different versions of the same component
+- Comp1 is a binary match and Comp2 is a signature match
+- Comp2 name and version strings ARE both found in the Signature match paths
+
+Outcome:
+- Comp1 will be marked IGNORED

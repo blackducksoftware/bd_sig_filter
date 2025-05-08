@@ -83,6 +83,53 @@ class ComponentList:
         # - if match_type contains Dependency then mark_reviewed
         # - else-if match_type is ONLY Signature then check_signature_rules
         #
+        def compare_comps(c1, c2):
+            if c1.is_dependency():
+                if c2.is_only_signature() and not c2.compver_found:
+                    logging.debug(
+                        f"IGNORING {c2.name[:25]}/{c2.version} as it has no version in sigpaths and is a duplicate to {c1.name[:25]}/{c1.version} which is a dependency")
+                    c2.reason = f"Mark IGNORED - Is a duplicate of dependency '{c1.name[:25]}/{c1.version[:10]}', has different component id or version and no version in sigpaths"
+                    c2.set_ignore()
+                    c2.set_notreviewed()
+                elif c1.filter_version == c2.filter_version:
+                    logging.debug(
+                        f"No Action for {c2.name[:25]}/{c2.version} as it has version in sigpaths but is a duplicate to {c1.name[:25]}/{c1.version} which is a dependency")
+                    c2.reason = f"No Action - Is a duplicate of dependency '{c1.name[:25]}/{c1.version[:10]}', has same version and version found in sigpaths but is a duplicate component"
+                    c2.set_notreviewed()
+                    c2.set_unignore()
+            elif c1.is_only_binary() and not c1.has_version():
+                if c2.is_dependency() or (c2.is_only_signature() and c2.compver_found):
+                    logging.debug(
+                        f"IGNORING {c1.name[:25]}/no_version as it is a binary match with no version and is a duplicate to {c2.name[:25]}/{c2.version}")
+                    c2.reason = f"Mark IGNORED - Is a duplicate of '{c2.name[:25]}/{c2.version[:10]}', but HAS no version"
+                    c2.set_ignore()
+                    c2.set_notreviewed()
+            elif c1.compname_found and not c2.compname_found:
+                logging.debug(
+                    f"IGNORING {c2.name[:25]}/{c2.version} as it is a duplicate to {c1.name}/{c1.version}")
+                c2.reason = f"Mark IGNORED - Is a duplicate of '{c1.name[:25]}/{c1.version[:10]}' but has no compname in Signature paths"
+                c2.set_ignore()
+                c2.set_notreviewed()
+            elif c1.compver_found and not c2.compver_found:
+                logging.debug(
+                    f"Will ignore {c2.name}/{c2.version} as it is a duplicate to {c1.name}/{c1.version} and path misses version")
+                c2.set_ignore()
+                c2.reason = f"Mark IGNORED - Is a duplicate to '{c1.name[:25]}/{c1.version[:10]}' but has no version in Signature paths"
+                c2.set_notreviewed()
+            elif not c1.compver_found and not c2.compver_found:
+                # Both components have no versions - mark c1 reviewed
+                logging.debug(
+                    f"- Duplicate components {c1.name}/{c1.version} and {c2.name}/{c2.version} - "
+                    f"{c1.name} marked as REVIEWED")
+                c1.set_reviewed()
+                c1.reason = f"Mark REVIEWED - Is a duplicate to '{c2.name[:25]}/{c2.version[:10]}' but both have no version in Signature paths (chose '{c1.version}')"
+                c2.set_notreviewed()
+                c2.reason = f"No Action - Is a duplicate to '{c1.name[:25]}/{c1.version[:10]}' but both have no version in Signature paths (chose '{c1.version}')"
+            else:
+                return False
+            return True
+        # END compare_comps()
+
         logging.debug("\nSIGNATURE SCAN FILTER PHASE")
         for comp in self.components:
             if comp.is_ignored():
@@ -113,75 +160,85 @@ class ComponentList:
                 comp2 = self.components[j]
                 if comp2.is_ignored() or comp2.ignore:
                     continue
+
                 if comp1.get_compid() == comp2.get_compid() or comp1.name.lower() == comp2.name.lower():
                     if comp1.is_dependency() and comp2.is_dependency():
                         continue
-                    elif comp1.is_dependency():
-                        if comp2.is_only_signature() and not comp2.compver_found:
-                            logging.debug(f"IGNORING {comp2.name[:25]}/{comp2.version} as it has no version in sigpaths and is a duplicate to {comp1.name[:25]}/{comp1.version} which is a dependency")
-                            comp2.reason = f"Mark IGNORED - Is a duplicate of dependency '{comp1.name[:25]}/{comp1.version[:10]}', has different component id or version and no version in sigpaths"
-                            comp2.set_ignore()
-                            comp2.set_notreviewed()
-                        elif comp1.filter_version == comp2.filter_version:
-                            logging.debug(
-                                f"No Action for {comp2.name[:25]}/{comp2.version} as it has version in sigpaths but is a duplicate to {comp1.name[:25]}/{comp1.version} which is a dependency")
-                            comp2.reason = f"No Action - Is a duplicate of dependency '{comp1.name[:25]}/{comp1.version[:10]}', has same version and version found in sigpaths but is a duplicate component"
-                            comp2.set_notreviewed()
-                            comp2.set_unignore()
-                    elif comp2.is_dependency():
-                        if comp1.is_only_signature() and not comp1.compver_found:
-                            logging.debug(
-                                f"IGNORING {comp1.name[:25]}/{comp1.version} as it has no version in sigpaths and is a duplicate to {comp2.name[:25]}/{comp2.version} which is a dependency")
-                            comp1.reason = f"Mark IGNORED - Is a duplicate of dependency '{comp2.name[:25]}/{comp2.version[:10]}' but has different component id or version and no version in sigpaths"
-                            comp1.set_ignore()
-                            comp1.set_notreviewed()
-                        elif comp1.filter_version == comp2.filter_version:
-                            logging.debug(
-                                f"No Action for {comp1.name[:25]}/{comp1.version} as it has version in sigpaths but is a duplicate to {comp2.name[:25]}/{comp2.version} which is a dependency")
-                            comp1.reason = f"No Action - Is a duplicate of dependency '{comp2.name[:25]}/{comp2.version[:10]}', , has same version and version found in sigpaths but is a duplicate component"
-                            comp1.set_notreviewed()
-                            comp1.set_unignore()
-
-                    elif comp1.compname_found and not comp2.compname_found:
-                        logging.debug(f"IGNORING {comp2.name[:25]}/{comp2.version} as it is a duplicate to {comp1.name}/{comp1.version}")
-                        comp2.reason = f"Mark IGNORED - Is a duplicate of '{comp1.name[:25]}/{comp1.version[:10]}' but has no compname in Signature paths"
-                        comp2.set_ignore()
-                        comp2.set_notreviewed()
-                    elif not comp1.compname_found and comp2.compname_found:
-                        logging.debug(f"IGNORING {comp1.name}/{comp1.version} as it is a duplicate to {comp2.name}/{comp2.version}")
-                        comp1.set_ignore()
-                        comp1.reason = f"Mark IGNORED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but has no compname in Signature paths"
-                        comp1.set_notreviewed()
-                    elif comp1.compver_found and not comp2.compver_found:
-                        logging.debug(f"Will ignore {comp2.name}/{comp2.version} as it is a duplicate to {comp1.name}/{comp1.version} and path misses version")
-                        comp2.set_ignore()
-                        comp2.reason = f"Mark IGNORED - Is a duplicate to '{comp1.name[:25]}/{comp1.version[:10]}' but has no version in Signature paths"
-                        comp2.set_notreviewed()
-                    elif not comp1.compver_found and comp2.compver_found:
-                        logging.debug(f"Will ignore {comp1.name}/{comp1.version} as it is a duplicate to {comp2.name}/{comp2.version} and path misses version")
-                        comp1.set_ignore()
-                        comp1.reason = f"Mark IGNORED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but has no version in Signature paths"
-                        comp1.set_notreviewed()
-                    elif not comp1.compver_found and not comp2.compver_found:
-                        # Both components have no versions - mark comp1 reviewed
-                        logging.debug(f"- Duplicate components {comp1.name}/{comp1.version} and {comp2.name}/{comp2.version} - "
-                              f"{comp1.name} marked as REVIEWED")
-                        comp1.set_reviewed()
-                        comp1.reason = f"Mark REVIEWED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but both have no version in Signature paths (chose '{comp1.version}')"
-                        comp2.set_notreviewed()
-                        comp2.reason = f"No Action - Is a duplicate to '{comp1.name[:25]}/{comp1.version[:10]}' but both have no version in Signature paths (chose '{comp1.version}')"
-                    elif comp1.filter_version == comp2.filter_version:
-                        logging.debug(
-                            f"- Duplicate components {comp1.name}/{comp1.version} and {comp2.name}/{comp2.version} - "
-                            f"{comp1.name} marked as REVIEWED")
-                        comp1.set_reviewed()
-                        comp1.reason = f"Mark REVIEWED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' and both have version in Signature paths (chose '{comp1.version}')"
-                        comp2.set_notreviewed()
-                        comp2.reason = f"No Action - Is a duplicate to '{comp1.name[:25]}/{comp1.version[:10]}' and both have version in Signature paths (chose '{comp1.version}')"
                     else:
-                        # Duplicate components and versions
-                        logging.debug(f"- Will retain both components {comp1.filter_name}/{comp1.filter_version} and {comp2.filter_name}/{comp2.filter_version} - "
-                              f"{comp1.sig_match_result},{comp2.sig_match_result}")
+                        ret = compare_comps(comp1, comp2)
+                        if not ret:
+                            ret = compare_comps(comp2, comp1)
+                        if not ret:
+                            # Duplicate components and versions
+                            logging.debug(f"- Will retain both components {comp1.filter_name}/{comp1.filter_version} and {comp2.filter_name}/{comp2.filter_version} - "
+                                  f"{comp1.sig_match_result},{comp2.sig_match_result}")
+
+                    # elif comp1.is_dependency():
+                    #     if comp2.is_only_signature() and not comp2.compver_found:
+                    #         logging.debug(f"IGNORING {comp2.name[:25]}/{comp2.version} as it has no version in sigpaths and is a duplicate to {comp1.name[:25]}/{comp1.version} which is a dependency")
+                    #         comp2.reason = f"Mark IGNORED - Is a duplicate of dependency '{comp1.name[:25]}/{comp1.version[:10]}', has different component id or version and no version in sigpaths"
+                    #         comp2.set_ignore()
+                    #         comp2.set_notreviewed()
+                    #     elif comp1.filter_version == comp2.filter_version:
+                    #         logging.debug(
+                    #             f"No Action for {comp2.name[:25]}/{comp2.version} as it has version in sigpaths but is a duplicate to {comp1.name[:25]}/{comp1.version} which is a dependency")
+                    #         comp2.reason = f"No Action - Is a duplicate of dependency '{comp1.name[:25]}/{comp1.version[:10]}', has same version and version found in sigpaths but is a duplicate component"
+                    #         comp2.set_notreviewed()
+                    #         comp2.set_unignore()
+                    # elif comp2.is_dependency():
+                    #     if comp1.is_only_signature() and not comp1.compver_found:
+                    #         logging.debug(
+                    #             f"IGNORING {comp1.name[:25]}/{comp1.version} as it has no version in sigpaths and is a duplicate to {comp2.name[:25]}/{comp2.version} which is a dependency")
+                    #         comp1.reason = f"Mark IGNORED - Is a duplicate of dependency '{comp2.name[:25]}/{comp2.version[:10]}' but has different component id or version and no version in sigpaths"
+                    #         comp1.set_ignore()
+                    #         comp1.set_notreviewed()
+                    #     elif comp1.filter_version == comp2.filter_version:
+                    #         logging.debug(
+                    #             f"No Action for {comp1.name[:25]}/{comp1.version} as it has version in sigpaths but is a duplicate to {comp2.name[:25]}/{comp2.version} which is a dependency")
+                    #         comp1.reason = f"No Action - Is a duplicate of dependency '{comp2.name[:25]}/{comp2.version[:10]}', , has same version and version found in sigpaths but is a duplicate component"
+                    #         comp1.set_notreviewed()
+                    #         comp1.set_unignore()
+                    #
+                    # elif comp1.compname_found and not comp2.compname_found:
+                    #     logging.debug(f"IGNORING {comp2.name[:25]}/{comp2.version} as it is a duplicate to {comp1.name}/{comp1.version}")
+                    #     comp2.reason = f"Mark IGNORED - Is a duplicate of '{comp1.name[:25]}/{comp1.version[:10]}' but has no compname in Signature paths"
+                    #     comp2.set_ignore()
+                    #     comp2.set_notreviewed()
+                    # elif not comp1.compname_found and comp2.compname_found:
+                    #     logging.debug(f"IGNORING {comp1.name}/{comp1.version} as it is a duplicate to {comp2.name}/{comp2.version}")
+                    #     comp1.set_ignore()
+                    #     comp1.reason = f"Mark IGNORED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but has no compname in Signature paths"
+                    #     comp1.set_notreviewed()
+                    # elif comp1.compver_found and not comp2.compver_found:
+                    #     logging.debug(f"Will ignore {comp2.name}/{comp2.version} as it is a duplicate to {comp1.name}/{comp1.version} and path misses version")
+                    #     comp2.set_ignore()
+                    #     comp2.reason = f"Mark IGNORED - Is a duplicate to '{comp1.name[:25]}/{comp1.version[:10]}' but has no version in Signature paths"
+                    #     comp2.set_notreviewed()
+                    # elif not comp1.compver_found and comp2.compver_found:
+                    #     logging.debug(f"Will ignore {comp1.name}/{comp1.version} as it is a duplicate to {comp2.name}/{comp2.version} and path misses version")
+                    #     comp1.set_ignore()
+                    #     comp1.reason = f"Mark IGNORED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but has no version in Signature paths"
+                    #     comp1.set_notreviewed()
+                    # elif not comp1.compver_found and not comp2.compver_found:
+                    #     # Both components have no versions - mark comp1 reviewed
+                    #     logging.debug(f"- Duplicate components {comp1.name}/{comp1.version} and {comp2.name}/{comp2.version} - "
+                    #           f"{comp1.name} marked as REVIEWED")
+                    #     comp1.set_reviewed()
+                    #     comp1.reason = f"Mark REVIEWED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' but both have no version in Signature paths (chose '{comp1.version}')"
+                    #     comp2.set_notreviewed()
+                    #     comp2.reason = f"No Action - Is a duplicate to '{comp1.name[:25]}/{comp1.version[:10]}' but both have no version in Signature paths (chose '{comp1.version}')"
+                    # elif comp1.filter_version == comp2.filter_version:
+                    #     logging.debug(
+                    #         f"- Duplicate components {comp1.name}/{comp1.version} and {comp2.name}/{comp2.version} - "
+                    #         f"{comp1.name} marked as REVIEWED")
+                    #     comp1.set_reviewed()
+                    #     comp1.reason = f"Mark REVIEWED - Is a duplicate to '{comp2.name[:25]}/{comp2.version[:10]}' and both have version in Signature paths (chose '{comp1.version}')"
+                    #     comp2.set_notreviewed()
+                    #     comp2.reason = f"No Action - Is a duplicate to '{comp1.name[:25]}/{comp1.version[:10]}' and both have version in Signature paths (chose '{comp1.version}')"
+                    # else:
+                    #     # Duplicate components and versions
+                    #     logging.debug(f"- Will retain both components {comp1.filter_name}/{comp1.filter_version} and {comp2.filter_name}/{comp2.filter_version} - "
+                    #           f"{comp1.sig_match_result},{comp2.sig_match_result}")
 
     def update_components(self, ver_dict):
         if global_values.ignore:
@@ -345,3 +402,18 @@ class ComponentList:
                 orinames = ','.join(comp.oriname_arr)
                 data += f"Comp: {comp.name}/{comp.version} (Origin names={orinames}):\n{paths}"
         return data
+
+    def get_list(self):
+        comparray = []
+        for comp in self.components:
+            comparray.append(comp.get_data())
+            if len(comparray) > 10:
+                break
+
+        return comparray
+
+    def __str__(self):
+        valstr = '['
+        for comp in self.components:
+            valstr += str(comp)
+        return valstr + ']'

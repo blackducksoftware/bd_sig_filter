@@ -3,6 +3,7 @@ import os
 import re
 from . import global_values
 import logging
+import json
 
 class SigEntry:
     def __init__(self, src_entry):
@@ -83,3 +84,45 @@ class SigEntry:
 
     def get_sigpath(self):
         return(f"- {self.path}")
+
+    def json(self):
+        data = {
+            'name': self.src_entry['name'],
+            'compositePath': self.src_entry['name']
+        }
+
+    def get_data(self):
+        data = {
+            'size': self.src_entry['size'],
+            'type': self.src_entry['type'],
+            'path': self.src_entry['compositePath']['path'],
+            'sigMatch': self.src_entry['fileSignaturePair']['signatureType']
+        }
+        return data
+
+    def __str__(self):
+        goodkeys = ["scanId",
+                "name",
+                "size",
+                "type",
+                "compositePath",
+                "fileSignaturePair",
+                "fileMatchBomComponent",
+                "fileDependencyBomComponents",
+                "partialFileMatchBomComponents",
+                "binaryFileMatchBomComponents",
+                "fileSnippetBomComponents",
+                "fileStringSearchMatches",
+                "policyApprovalStatus",
+                "activePolicies",
+                "uri",
+                "policyOverriddenBySet",
+                "fileMatchComponentUsage"]
+
+        newdata = {}
+
+        for key in self.src_entry.keys():
+            if key in goodkeys:
+                newdata[key] = self.src_entry[key]
+
+        return(json.dumps(newdata, indent=4))

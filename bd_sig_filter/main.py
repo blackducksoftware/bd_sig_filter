@@ -6,6 +6,8 @@ from . import config
 import logging
 from .BOMClass import BOM
 from . import global_values
+import json
+import sys
 # import platform
 
 
@@ -16,6 +18,11 @@ def main():
 
     logging.debug('- Getting matched file data ... ')
     bom.get_bom_files()
+    data = bom.get_data()
+    with open("out.json", "w") as outfile:
+        outfile.write(json.dumps(data, indent=4))
+
+    sys.exit(0)
     bom.process()
     bom.update_components()
     bom.report_summary()

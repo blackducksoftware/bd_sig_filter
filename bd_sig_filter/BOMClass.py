@@ -5,6 +5,7 @@ from . import bd_project
 from . import global_values
 from tabulate import tabulate
 import logging
+import json
 
 class BOM:
     def __init__(self):
@@ -21,10 +22,9 @@ class BOM:
 
         for comp in bom_arr:
             if 'componentVersion' not in comp:
-                continue
-            # compver = comp['componentVersion']
-
-            compclass = Component(comp['componentName'], comp['componentVersionName'], comp)
+                compclass = Component(comp['componentName'], '', comp)
+            else:
+                compclass = Component(comp['componentName'], comp['componentVersionName'], comp)
             self.complist.add(compclass)
 
         return
@@ -87,3 +87,13 @@ class BOM:
                 # Writing data to a file
                 rfile.writelines(data)
 
+    def get_data(self):
+        data = {
+            'projname': global_values.bd_project,
+            'projver': self.bdver_dict['versionName'],
+            'complist': self.complist.get_list()
+        }
+        return data
+
+    def __str__(self):
+        return str(self.complist)

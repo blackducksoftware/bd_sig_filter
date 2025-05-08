@@ -4,6 +4,7 @@ import re
 # import global_values
 import logging
 # from thefuzz import fuzz
+import json
 
 class Component:
     def __init__(self, name, version, data):
@@ -56,8 +57,24 @@ class Component:
                 return True
         return False
 
+    def is_binary(self):
+        sig_types = ('BINARY')
+        match_types = self.get_matchtypes()
+        for m in sig_types:
+            if m in match_types:
+                return True
+        return False
+
     def is_only_signature(self):
-        return not self.is_dependency() and self.is_signature()
+        return not self.is_dependency() and self.is_signature() and not self.is_binary()
+
+    def is_only_binary(self):
+        return not self.is_dependency() and not self.is_signature() and self.is_binary()
+
+    def has_version(self):
+        if self.version != '':
+            return True
+        return False
 
     def set_ignore(self):
         self.ignore = True
@@ -233,3 +250,65 @@ class Component:
             data += f"{sigentry.get_sigpath()}\n"
             count += 1
         return data
+
+    def output_data(self):
+        good_keys = ["componentName",
+                    "componentVersionName",
+                    "totalFileMatchCount",
+                    "matchConfidence",
+                    "matchConfidenceStatus",
+                    "matchAmbiguity",
+                    "usages",
+                    "ignored",
+                    "bomMatchInclusion",
+                    "matchTypes",
+                    "reviewStatus",
+                    "manuallyAdjusted",
+                    "componentModified",
+                    "componentType"]
+        newdata = {}
+        for key in self.data.keys():
+            if key in good_keys:
+                if type(self.data[key]) is float or type(self.data[key]) is int:
+                    newdata[key] = f"\"{self.data[key]}\""
+                else:
+                    newdata[key] = self.data[key]
+        return json.dumps(newdata, indent=4)
+
+    def get_data(self):
+        try:
+            data = {
+                'name': self.name,
+                'version': self.version,
+                'ignored': self.data['ignored'],
+                'matchTypes': self.data['matchTypes'],
+                'totalFileMatchCount': self.data['totalFileMatchCount'],
+                'matchConfidenceStatus': self.data['matchConfidenceStatus'],
+                'sigEntries': []
+            }
+            data['matchAmbiguity'] = self.data['matchAmbiguity']['kbArtifactMatchPercentage']
+            for sig in self.sigentry_arr:
+                data['sigEntries'].append(sig.get_data())
+        except KeyError as ke:
+            pass
+        return data
+
+    def __str__(self):
+        strval = '{'
+        # name = self.name.replace("\"", "\\\"")
+        # strval += f'"name": "{name}",\n'
+        # ver = self.version.replace("\"", "\\\"")
+        # strval += f'"version": "{ver}",\n'
+        strval += f'"data": {self.output_data()},\n'
+        strval += '"sigentry_arr": [\n'
+
+        prev = False
+        for entry in self.sigentry_arr:
+            if prev:
+                strval += ","
+            strval += str(entry)
+            prev = True
+            strval += "\n"
+        strval += ']\n}\n'
+        return strval
+
