@@ -16,6 +16,12 @@ def main():
 
     logging.debug('- Getting matched file data ... ')
     bom.get_bom_files()
+    if global_values.ignore_archive_submatches:
+        logging.info("Processing components within archives ...")
+        bom.process_archives()
+        bom.update_components()
+        return
+
     bom.process()
     bom.update_components()
     bom.report_summary()

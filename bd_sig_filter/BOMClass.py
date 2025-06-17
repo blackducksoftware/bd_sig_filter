@@ -87,3 +87,5 @@ class BOM:
                 # Writing data to a file
                 rfile.writelines(data)
 
+    def process_archives(self):
+        self.complist.process_archives()

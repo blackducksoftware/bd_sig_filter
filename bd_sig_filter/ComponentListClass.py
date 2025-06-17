@@ -345,3 +345,24 @@ class ComponentList:
                 orinames = ','.join(comp.oriname_arr)
                 data += f"Comp: {comp.name}/{comp.version} (Origin names={orinames}):\n{paths}"
         return data
+
+    def process_archives(self):
+        archive_list = []
+        for comp in self.components:
+            if comp.is_ignored():
+                continue
+            if comp.is_only_signature():
+                archive = comp.get_archive_match()
+                archive_list.append(archive)
+
+        for comp in self.components:
+            if not comp.is_ignored() and not comp.archive_match:
+                comp.get_top_match(archive_list)
+
+        ignored_count = 0
+        for comp in self.components:
+            if not comp.is_ignored() and not comp.archive_match:
+                comp.ignore = True
+                ignored_count += 1
+
+        logging.info(f"Found {ignored_count} archive sub-components to ignore")

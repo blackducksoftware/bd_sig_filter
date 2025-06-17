@@ -1,4 +1,4 @@
-# bd_sig_filter - v1.7
+# bd_sig_filter - v1.8
 BD Script to ignore components matched from Signature scan likely to be partial or invalid matches, and 
 mark components reviewed which are definitive matches (dependency or component name and version in matched path for
 signature matches).
@@ -65,7 +65,7 @@ The package can be invoked as follows:
 
     usage: bd-sig-filter [-h] [--blackduck_url BLACKDUCK_URL] [--blackduck_api_token BLACKDUCK_API_TOKEN] [--blackduck_trust_cert] [-p PROJECT] [-v VERSION] [--debug] [--logfile LOGFILE]
                          [--report_file REPORT_FILE] [--version_match_reqd] [--ignore] [--review] [--no_ignore_test] [--no_ignore_synopsys] [--no_ignore_defaults]
-                         [--ignore_no_path_matches]
+                         [--ignore_no_path_matches] [--ignore_archive_submatches]
 
     options:
       -h, --help            show this help message and exit 
@@ -94,6 +94,8 @@ The package can be invoked as follows:
                             (Use with caution)
       --report_unmatched    Report the list of components which will be left Unreviewed and why - these may need
                             to be manually reviewed.
+      --ignore_archive_submatches
+                            Process components to determine sub-matches within archives.
 
 The minimum required options are:
     
@@ -170,6 +172,11 @@ Options can be used to modify the behaviour of the script as follows:
 
 `--report_unmatched`:
         Create a list of Signature components which will be left UNreviewed 
+
+`--ignore_archive_submatches`:
+        Process components in the project version looking for those matched within
+        archive files, and report which can be ignored because they are sub-matches (from folders within the archive).
+        All other operations are replaced by this action.
 
 The options `--report_file` and `--logfile` can be used to output the tabular report and logging data to
 specified files.

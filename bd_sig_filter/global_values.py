@@ -16,3 +16,4 @@ ignore_no_path_matches = False
 review = False
 report_file = ''
 report_unmatched = False
+ignore_archive_submatches = False

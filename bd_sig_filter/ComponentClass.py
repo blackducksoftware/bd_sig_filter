@@ -22,6 +22,7 @@ class Component:
         self.best_sigpath = ''
         self.oriname_arr = self.get_origin_compnames()
         self.unmatched = False
+        self.archive_match = False
 
     def get_compverid(self):
         try:
@@ -233,3 +234,25 @@ class Component:
             data += f"{sigentry.get_sigpath()}\n"
             count += 1
         return data
+
+    def get_archive_match(self):
+        for sigentry in self.sigentry_arr:
+            paths = sigentry.path.split('!')
+            if len(paths) == 1:
+                self.archive_match = True
+                return paths[0]
+
+    def get_top_match(self, archive_list):
+        import re
+        ver_digits = re.sub("[^0-9._-]", "", self.version)
+
+        for sigentry in self.sigentry_arr:
+            paths = sigentry.path.split('!')
+            if len(paths) == 1:
+                continue
+            for oricompname in self.oriname_arr:
+                # if oricompname in paths[0]:
+                if oricompname in paths[0] and ver_digits in paths[0]:
+                #     print(oricompname, self.version, paths[0])
+                    self.archive_match = True
+                    return
