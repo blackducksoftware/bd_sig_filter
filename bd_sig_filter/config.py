@@ -27,6 +27,7 @@ parser.add_argument("--no_ignore_synopsys", help="Do not ignore components in sy
 parser.add_argument("--no_ignore_defaults", help="Do not ignore components in default folders", action='store_true')
 parser.add_argument("--ignore_no_path_matches", help="Also ignore components with no component/version match in signature path", action='store_true')
 parser.add_argument("--report_unmatched", help="Report unmatched (not reviewed or ignored) components", action='store_true')
+parser.add_argument("--ignore_archive_submatches", help="Ignore sub-components within archives", action='store_true')
 
 args = parser.parse_args()
 
@@ -103,6 +104,9 @@ def check_args():
 
     if args.no_ignore_defaults:
         global_values.no_ignore_defaults = True
+
+    if args.ignore_archive_submatches:
+        global_values.ignore_archive_submatches = True
 
     if args.ignore_no_path_matches:
         if not args.ignore:

@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bd_sig_filter"
-version = "1.7"
+version = "1.8"
 authors = [
-  { name="Matthew Brady", email="mbrad@synopsys.com" },
+  { name="Matthew Brady", email="mbrad@blackduck.com" },
 ]
 description = "BD_sig_filter - BD Script to ignore components matched from Signature scan likely to be partial or invalid matches."
 readme = "README.md"
