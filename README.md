@@ -5,7 +5,7 @@ signature matches).
 
 ## PROVISION OF THIS SCRIPT
 This script is provided under the MIT OSS license (see LICENSE file).
-It does not represent any extension of licensed functionality of Synopsys software itself and is provided as-is, without warranty or liability.
+It does not represent any extension of licensed functionality of Black Duck software components itself and is provided as-is, without warranty or liability.
 If you have comments or issues, please raise a GitHub issue here. Synopsys support is not able to respond to support tickets for this OSS utility. Users of this pilot project commit to engage properly with the authors to address any identified issues.
 
 ## INTRODUCTION
@@ -22,7 +22,7 @@ version by looking at the individual files.
 However, Signature matching can still produce false positive matches, especially where template code hierarchies 
 exist in custom and OSS code.
 
-Furthermore, Signature matches can be identified in folders created by Synopsys tools, or in cache/config
+Furthermore, Signature matches can be identified in folders created by the tools themselves, or in cache/config
 locations or test folders; these folders can be ignored at scan time, but can exist in the Black Duck project and need to 
 be removed after scan completion. Additionally, when scanning
 modified OSS, Signature scanning can identify the same component with multiple versions from a single project
