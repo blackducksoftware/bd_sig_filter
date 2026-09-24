@@ -42,6 +42,32 @@ class BOM:
         self.complist.add_bomfile_data(src_data)
         return
 
+    def get_match_review_components(self):
+        if not global_values.match_review:
+            return
+
+        res = global_values.bd.list_resources(self.bdver_dict)
+        projver = res['href']
+        thishref = f"{projver}/review-components?limit=1000"
+
+        review_arr = bd_data.get_paginated_data(thishref, "application/vnd.blackducksoftware.bill-of-materials-5+json")
+
+        low_match_count = 0
+        unmatched_count = 0
+        for item in review_arr:
+            match_review_type = item.get('matchReviewType')
+            compclass = Component(item.get('componentName', ''), item.get('componentVersionName', ''), item)
+            if match_review_type == 'LOW_MATCH_SCORE':
+                compclass.add_match_review_sig_paths()
+                low_match_count += 1
+            elif match_review_type == 'UNMATCHED':
+                unmatched_count += 1
+            self.complist.add(compclass)
+
+        logging.info(f"- Retrieved {low_match_count} LOW_MATCH_SCORE and {unmatched_count} UNMATCHED components "
+                     f"from Match Review")
+        return
+
     def process(self):
         self.complist.process()
         return

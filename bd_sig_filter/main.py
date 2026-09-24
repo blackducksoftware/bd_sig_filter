@@ -16,6 +16,7 @@ def main():
 
     logging.debug('- Getting matched file data ... ')
     bom.get_bom_files()
+    bom.get_match_review_components()
     bom.process()
     bom.update_components()
     bom.report_summary()

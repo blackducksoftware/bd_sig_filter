@@ -1,4 +1,4 @@
-# bd_sig_filter - v1.7
+# bd_sig_filter - v1.8
 BD Script to ignore components matched from Signature scan likely to be partial or invalid matches, and 
 mark components reviewed which are definitive matches (dependency or component name and version in matched path for
 signature matches).
@@ -94,6 +94,14 @@ The package can be invoked as follows:
                             (Use with caution)
       --report_unmatched    Report the list of components which will be left Unreviewed and why - these may need
                             to be manually reviewed.
+      --match_review        Also process components in the Match Review view (signature matches not yet in the
+                            BOM due to low match confidence, and declared components with no match at all).
+                            Requires --ignore/--review to take action; without them, Match Review components
+                            are only reported.
+      --ignore_unmatched_declared
+                            Also mark declared/manifest components in Match Review ignored if they could not be
+                            matched to any component at all (no signature path data exists to assess these -
+                            use with caution)
 
 The minimum required options are:
     
@@ -244,3 +252,24 @@ Outcome:
 Outcome:
 - Comp1 will be marked REVIEWED
 - Comp2 will be left unignored and not reviewed - for manual review
+
+## PROCESSING MATCH REVIEW COMPONENTS
+Newer versions of Black Duck SCA include a **Match Review** view containing signature matches and declared
+(manifest) components which are **not** automatically added to the BOM:
+
+- `LOW_MATCH_SCORE` items - a real component/version match was found in the Knowledge Base, but confidence
+  was too low for Black Duck to add it to the BOM automatically.
+- `UNMATCHED` items - a declared/manifest dependency which could not be matched to any Knowledge Base
+  component at all.
+
+Use the `--match_review` option to also fetch and process these components alongside the normal BOM. `LOW_MATCH_SCORE`
+items are run through the same name/version-in-signature-path heuristics used for other signature-only matches
+(and are also checked for duplicates against confirmed BOM dependencies), reported with Match Type `MR-Sig` and
+an action of `Mark CONFIRMED (Match Review)` or `Mark REJECTED (Match Review)`. `UNMATCHED` items have no signature
+path data available to assess, so by default they are reported (Match Type `MR-Unmatched`) with `No Action` for
+manual review; use `--ignore_unmatched_declared` to have the script mark them ignored automatically instead
+(use with caution - there is no way for the script to determine whether these are legitimate components).
+
+As with normal BOM processing, `--match_review` only reports what would happen unless combined with `--ignore`
+and/or `--review`, in which case matching Match Review components are confirmed into the BOM (and marked reviewed)
+or rejected (ignored) via the Match Review API.

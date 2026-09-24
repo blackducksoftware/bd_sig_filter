@@ -1,4 +1,5 @@
 from . import global_values
+from . import bd_data
 from .SigEntryClass import SigEntry
 import re
 # import global_values
@@ -22,6 +23,33 @@ class Component:
         self.best_sigpath = ''
         self.oriname_arr = self.get_origin_compnames()
         self.unmatched = False
+        # Match Review components are not yet in the BOM - matchReviewType is only present for these
+        # ('LOW_MATCH_SCORE' - a real low-confidence component match, or 'UNMATCHED' - a declared
+        # component which could not be matched to anything). None for normal BOM components.
+        self.match_review_type = data.get('matchReviewType')
+
+    def add_match_review_sig_paths(self):
+        # Only meaningful for LOW_MATCH_SCORE Match Review components - fetches signature match paths
+        # directly from each origin's 'matched-files' link, since these components are not (yet) part
+        # of the BOM and are therefore not reliably present in the source-bom-entries feed used by
+        # add_src()/add_bomfile_data() for confirmed BOM components.
+        for origin in self.data.get('origins', []):
+            href = None
+            for link in origin.get('_meta', {}).get('links', []):
+                if link.get('rel') == 'matched-files':
+                    href = link.get('href')
+                    break
+            if not href:
+                continue
+
+            files = bd_data.get_paginated_data(f"{href}?limit=1000",
+                                                "application/vnd.blackducksoftware.bill-of-materials-6+json")
+            for file_entry in files:
+                try:
+                    path = file_entry['filePath']['compositePathContext']
+                except KeyError:
+                    continue
+                self.add_src({'commentPath': path})
 
     def get_compverid(self):
         try:

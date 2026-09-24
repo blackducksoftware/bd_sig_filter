@@ -94,11 +94,23 @@ class ComponentList:
             #     comp.print_sigpaths()
             # continue
             # END DEBUG
+            if comp.match_review_type == 'UNMATCHED':
+                if global_values.ignore_unmatched_declared:
+                    comp.set_ignore()
+                    comp.reason = "Mark IGNORED (Match Review) - declared component not matched to any KB component & --ignore_unmatched_declared set"
+                else:
+                    comp.reason = "No Action - declared component in Match Review not matched to any KB component (manual review required)"
+                continue
             if comp.is_dependency():
                 comp.set_reviewed()
                 comp.reason = "Mark REVIEWED - Dependency"
             elif comp.is_only_signature():
                 comp.process_signatures()
+                if comp.match_review_type == 'LOW_MATCH_SCORE':
+                    if comp.mark_reviewed:
+                        comp.reason = comp.reason.replace("Mark REVIEWED -", "Mark CONFIRMED (Match Review) -", 1)
+                    elif comp.ignore:
+                        comp.reason = comp.reason.replace("Mark IGNORED -", "Mark REJECTED (Match Review) -", 1)
             else:
                 comp.reason = 'No action - not Signature match'
 
@@ -112,6 +124,10 @@ class ComponentList:
             for j in range(i + 1, len(self.components)):
                 comp2 = self.components[j]
                 if comp2.is_ignored() or comp2.ignore:
+                    continue
+                if comp1.match_review_type == 'UNMATCHED' or comp2.match_review_type == 'UNMATCHED':
+                    # UNMATCHED declared components have no real component id, so get_compid() returns ''
+                    # for all of them - without this guard they'd falsely appear as duplicates of each other
                     continue
                 if comp1.get_compid() == comp2.get_compid() or comp1.name.lower() == comp2.name.lower():
                     if comp1.is_dependency() and comp2.is_dependency():
@@ -187,10 +203,16 @@ class ComponentList:
         if global_values.ignore:
             logging.info("- Ignoring components ...")
             self.ignore_components(ver_dict)
+            if global_values.match_review:
+                logging.info("- Rejecting Match Review components ...")
+                self.reject_match_review_components(ver_dict)
 
         if global_values.review:
             logging.info("- Marking components reviewed ...")
             self.review_components(ver_dict)
+            if global_values.match_review:
+                logging.info("- Confirming Match Review components ...")
+                self.confirm_match_review_components(ver_dict)
 
 
     def ignore_components(self, ver_dict):
@@ -322,10 +344,152 @@ class ComponentList:
 
         return
 
+    @staticmethod
+    def _chunk(items, size=99):
+        chunks = []
+        current = []
+        for item in items:
+            current.append(item)
+            if len(current) >= size:
+                chunks.append(current)
+                current = []
+        if current:
+            chunks.append(current)
+        return chunks
+
+    def confirm_match_review_components(self, ver_dict):
+        matched_hrefs = []
+        for comp in self.components:
+            if comp.match_review_type == 'LOW_MATCH_SCORE' and comp.mark_reviewed:
+                try:
+                    matched_hrefs.append(comp.data['_meta']['href'])
+                except KeyError:
+                    continue
+
+        if not matched_hrefs:
+            return
+
+        count = 0
+        for batch in self._chunk(matched_hrefs):
+            match_review_data = {
+                "matchedComponents": batch,
+                "unmatchedComponents": [],
+                "ignored": False,
+            }
+            review_bulk_data = {
+                "components": batch,
+                "reviewStatus": "REVIEWED",
+                "confirmed": True,
+            }
+            comment_bulk_data = {
+                "components": batch,
+                "comment": "Confirmed by bd_sig_filter() script - comp name and/or version found in Sig path",
+            }
+
+            try:
+                url = ver_dict['_meta']['href'] + '/match-review/bulk-adjustment'
+                headers = {
+                    "Accept": "application/vnd.blackducksoftware.bill-of-materials-7+json",
+                    "Content-Type": "application/vnd.blackducksoftware.bill-of-materials-7+json"
+                }
+                r = global_values.bd.session.patch(url, json=match_review_data, headers=headers)
+                r.raise_for_status()
+
+                url = ver_dict['_meta']['href'] + '/bulk-adjustment'
+                headers = {
+                    "Accept": "application/vnd.blackducksoftware.bill-of-materials-7+json",
+                    "Content-Type": "application/vnd.blackducksoftware.bill-of-materials-7+json"
+                }
+                r = global_values.bd.session.patch(url, json=review_bulk_data, headers=headers)
+                r.raise_for_status()
+
+                url = ver_dict['_meta']['href'] + '/bulk-comment'
+                headers = {
+                    "Accept": "application/vnd.blackducksoftware.bill-of-materials-6+json",
+                    "Content-Type": "application/vnd.blackducksoftware.bill-of-materials-6+json"
+                }
+                r = global_values.bd.session.post(url, json=comment_bulk_data, headers=headers)
+                r.raise_for_status()
+
+                count += len(batch)
+            except requests.HTTPError as err:
+                global_values.bd.http_error_handler(err)
+
+        logging.info(f"- Confirmed {count} Match Review components into the BOM")
+        return
+
+    def reject_match_review_components(self, ver_dict):
+        matched_hrefs = []
+        unmatched_entries = []
+        for comp in self.components:
+            if not comp.ignore:
+                continue
+            if comp.match_review_type == 'LOW_MATCH_SCORE':
+                try:
+                    matched_hrefs.append(comp.data['_meta']['href'])
+                except KeyError:
+                    continue
+            elif comp.match_review_type == 'UNMATCHED':
+                try:
+                    href = comp.data['_meta']['href']
+                except KeyError:
+                    continue
+                external_ids = comp.data.get('inputExternalIds') or [comp.name]
+                unmatched_entries.append({
+                    "unmatchedComponentUrl": href,
+                    "externalId": external_ids[0],
+                })
+
+        if not matched_hrefs and not unmatched_entries:
+            return
+
+        matched_batches = self._chunk(matched_hrefs) or [[]]
+        unmatched_batches = self._chunk(unmatched_entries) or [[]]
+
+        count = 0
+        try:
+            url = ver_dict['_meta']['href'] + '/match-review/bulk-adjustment'
+            headers = {
+                "Accept": "application/vnd.blackducksoftware.bill-of-materials-7+json",
+                "Content-Type": "application/vnd.blackducksoftware.bill-of-materials-7+json"
+            }
+            for batch in matched_batches:
+                if not batch:
+                    continue
+                match_review_data = {
+                    "matchedComponents": batch,
+                    "unmatchedComponents": [],
+                    "ignored": True,
+                }
+                r = global_values.bd.session.patch(url, json=match_review_data, headers=headers)
+                r.raise_for_status()
+                count += len(batch)
+
+            for batch in unmatched_batches:
+                if not batch:
+                    continue
+                match_review_data = {
+                    "matchedComponents": [],
+                    "unmatchedComponents": batch,
+                    "ignored": True,
+                }
+                r = global_values.bd.session.patch(url, json=match_review_data, headers=headers)
+                r.raise_for_status()
+                count += len(batch)
+        except requests.HTTPError as err:
+            global_values.bd.http_error_handler(err)
+
+        logging.info(f"- Rejected {count} Match Review components")
+        return
+
     def get_component_report_data(self):
         data = []
         for comp in self.components:
-            if comp.is_signature() and comp.is_dependency():
+            if comp.match_review_type == 'LOW_MATCH_SCORE':
+                type = "MR-Sig"
+            elif comp.match_review_type == 'UNMATCHED':
+                type = "MR-Unmatched"
+            elif comp.is_signature() and comp.is_dependency():
                 type = "Dep+Sig"
             elif comp.is_dependency():
                 type = "Dep"

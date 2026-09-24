@@ -27,6 +27,15 @@ parser.add_argument("--no_ignore_synopsys", help="Do not ignore components in sy
 parser.add_argument("--no_ignore_defaults", help="Do not ignore components in default folders", action='store_true')
 parser.add_argument("--ignore_no_path_matches", help="Also ignore components with no component/version match in signature path", action='store_true')
 parser.add_argument("--report_unmatched", help="Report unmatched (not reviewed or ignored) components", action='store_true')
+parser.add_argument("--match_review", help="Also process components in the Match Review view (signature matches "
+                                            "not yet in the BOM due to low match confidence, and declared "
+                                            "components with no match at all). Requires --ignore/--review to take "
+                                            "action; without them, Match Review components are only reported.",
+                     action='store_true')
+parser.add_argument("--ignore_unmatched_declared", help="Also mark declared/manifest components in Match Review "
+                                                         "ignored if they could not be matched to any component at "
+                                                         "all (no signature path data exists to assess these - use "
+                                                         "with caution)", action='store_true')
 
 args = parser.parse_args()
 
@@ -117,6 +126,14 @@ def check_args():
 
     if args.report_unmatched:
         global_values.report_unmatched = True
+
+    if args.match_review:
+        global_values.match_review = True
+
+    if args.ignore_unmatched_declared:
+        if not args.match_review:
+            logging.warning(f"Option --ignore_unmatched_declared set without --match_review")
+        global_values.ignore_unmatched_declared = True
 
     if terminate:
         sys.exit(2)
